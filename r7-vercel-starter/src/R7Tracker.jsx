@@ -396,6 +396,22 @@ function NumberCell({ value, setValue, min, max, step = 1 }) {
   );
 }
 
+// Узкий инпут для мобилки
+function InputMini({ className = "", ...props }) {
+  return (
+    <input
+      {...props}
+      inputMode="decimal"
+      pattern="[0-9,.]*"
+      className={[
+        "h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-xs",
+        className,
+      ].join(" ")}
+    />
+  );
+}
+
+
 /* ===================== PWA / Telegram ===================== */
 function usePwaInstall() {
   const [deferred, setDeferred] = useState(null);
@@ -611,61 +627,135 @@ function ProgramsTab({ data, setData }) {
                 </div>
               )}
 
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50">
-                    <tr>
-                      <th className="px-2 py-2 text-left">Подход</th>
-                      <th className="px-2 py-2 text-left">Повт. факт</th>
-                      <th className="px-2 py-2 text-left">Вес, кг</th>
-                      <th className="px-2 py-2 text-left">RIR</th>
-                      <th className="px-2 py-2 text-left">Сделано</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Array.from({ length: ex.workSets }).map((_, si) => {
-                      const k = keyFor(level, ps.week, ps.day, exIdx);
-                      const row = ps.progress[k]?.sets?.[si] || {};
-                      return (
-                        <tr key={si} className="border-b">
-                          <td className="px-2 py-1">{si + 1}</td>
-                          <td className="px-2 py-1">
-                            <input
-                              className="w-24 rounded border px-2 py-1"
-                              value={row.reps || ""}
-                              onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
-                              placeholder={ex.reps}
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              className="w-24 rounded border px-2 py-1"
-                              value={row.weight || ""}
-                              onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
-                              placeholder="—"
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              className="w-20 rounded border px-2 py-1"
-                              value={row.rir || ""}
-                              onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
-                              placeholder="1–2"
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              type="checkbox"
-                              checked={!!row.done}
-                              onChange={() => toggleSet(exIdx, si)}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            {/* --- Сеты / компактная верстка для мобилы + таблица для десктопа --- */}
+<div className="mt-3">
+  {/* Мобилка: компактный список без скролла по горизонтали */}
+  <div className="divide-y rounded-lg border md:hidden">
+    {Array.from({ length: ex.workSets }).map((_, si) => {
+      const k = keyFor(level, ps.week, ps.day, exIdx);
+      const row = ps.progress[k]?.sets?.[si] || {};
+      const done = !!row.done;
+
+      return (
+        <div key={si} className="grid grid-cols-12 items-center gap-1 px-2 py-2">
+          {/* № подхода */}
+          <div className="col-span-2 flex items-center justify-center">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-[11px] font-semibold">
+              {si + 1}
+            </div>
+          </div>
+
+          {/* Повторения факт */}
+          <div className="col-span-3">
+            <InputMini
+              aria-label="Повторения"
+              placeholder={ex.reps}
+              value={row.reps || ""}
+              onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
+            />
+          </div>
+
+          {/* Вес, кг */}
+          <div className="col-span-3 flex items-center gap-1">
+            <InputMini
+              aria-label="Вес, кг"
+              placeholder="кг"
+              value={row.weight || ""}
+              onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
+            />
+            <span className="text-[10px] text-zinc-500">кг</span>
+          </div>
+
+          {/* RIR */}
+          <div className="col-span-2">
+            <InputMini
+              aria-label="RIR"
+              placeholder="1–2"
+              value={row.rir || ""}
+              onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
+            />
+          </div>
+
+          {/* Сделано */}
+          <div className="col-span-2 flex items-center justify-end">
+            <button
+              onClick={() => toggleSet(exIdx, si)}
+              className={[
+                "h-8 w-8 rounded-full border text-xs",
+                done ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white",
+              ].join(" ")}
+              aria-label="Отметить сделанным"
+              title="Сделано"
+            >
+              ✓
+            </button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {/* Десктоп: узкая таблица, чтобы занимала меньше места */}
+  <div className="hidden overflow-x-auto md:block">
+    <table className="w-full text-sm">
+      <thead className="bg-zinc-50">
+        <tr>
+          <th className="px-2 py-2 text-left">Подход</th>
+          <th className="px-2 py-2 text-left">Повт. факт</th>
+          <th className="px-2 py-2 text-left">Вес</th>
+          <th className="px-2 py-2 text-left">RIR</th>
+          <th className="px-2 py-2 text-left">Сделано</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: ex.workSets }).map((_, si) => {
+          const k = keyFor(level, ps.week, ps.day, exIdx);
+          const row = ps.progress[k]?.sets?.[si] || {};
+          return (
+            <tr key={si} className="border-b">
+              <td className="px-2 py-1">{si + 1}</td>
+              <td className="px-2 py-1">
+                <input
+                  className="h-8 w-16 rounded border px-2 text-xs"
+                  value={row.reps || ""}
+                  onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
+                  placeholder={ex.reps}
+                />
+              </td>
+              <td className="px-2 py-1">
+                <div className="flex items-center gap-1">
+                  <input
+                    className="h-8 w-16 rounded border px-2 text-xs"
+                    value={row.weight || ""}
+                    onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
+                    placeholder="кг"
+                  />
+                  <span className="text-[10px] text-zinc-500">кг</span>
+                </div>
+              </td>
+              <td className="px-2 py-1">
+                <input
+                  className="h-8 w-14 rounded border px-2 text-xs"
+                  value={row.rir || ""}
+                  onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
+                  placeholder="1–2"
+                />
+              </td>
+              <td className="px-2 py-1">
+                <input
+                  type="checkbox"
+                  checked={!!row.done}
+                  onChange={() => toggleSet(exIdx, si)}
+                />
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</div>
+
             </div>
           ))}
 
