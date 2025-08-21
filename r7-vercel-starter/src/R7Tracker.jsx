@@ -675,7 +675,7 @@ function ProgramsTab({ data, setData }) {
       value={row.rir || ""}
       onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
     />
-    <span className="ml-1 w-8 text-center text-[7px] text-zinc-500">R</span>
+    <span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
   </div>
 </div>
 
