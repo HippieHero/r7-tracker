@@ -675,8 +675,13 @@ function ProgramsTab({ data, setData }) {
             />
 {/* RIR + подпись справа */}
 <div className="flex items-center">
-<InputMini value={...} onChange={...} placeholder="1–2" />
-<span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
+  <InputMini
+    aria-label="RIR"
+    placeholder="1–2"
+    value={row.rir || ""}
+    onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
+  />
+  <span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
 </div>
           </div>
 
