@@ -673,7 +673,8 @@ function ProgramsTab({ data, setData }) {
               value={row.rir || ""}
               onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
             />
-            <div className="flex items-center">
+            {/* RIR + подпись справа */}
+<div className="flex items-center">
   <InputMini value={...} onChange={...} placeholder="1–2" />
   <span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
 </div>
