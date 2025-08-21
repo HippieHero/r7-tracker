@@ -696,13 +696,13 @@ function ProgramsTab({ data, setData }) {
     onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
     className="h-8 w-[48px] rounded-md border border-zinc-300 px-1 text-center text-sm"
   >
-    <option value="" disabled>RIR</option>
+<option value="">{'\u00A0'}</option>
+    <option value="Отказ">Отказ</option>
     <option value="0">0</option>
     <option value="1">1</option>
     <option value="2">2</option>
     <option value="3">3</option>
     <option value="4">4</option>
-    <option value="отказ">Отказ</option>
   </select>
 </div>
 
