@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 // ---------- Helpers ----------
 const STORAGE_KEY = "r7_tracker_v3"; // 30‑day defaults
 const DEFAULT_DAYS = 30;
+const BORDER_LITE = "border-[#d9dce1]"; // светлая обводка для элементов на градиенте
 
 function usePersistedState(key, initial) {
   const [state, setState] = useState(() => {
@@ -16,6 +17,20 @@ function usePersistedState(key, initial) {
   useEffect(() => {
     localStorage.setItem(key, JSON.stringify(state));
   }, [key, state]);
+
+  // дополнительная страховка: пробрасываем последнее состояние перед выгрузкой вкладки
+  useEffect(() => {
+    const onUnload = () => {
+      try { localStorage.setItem(key, JSON.stringify(state)); } catch (_) {}
+    };
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("visibilitychange", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("visibilitychange", onUnload);
+    };
+  }, [key, state]);
+
   return [state, setState];
 }
 
@@ -127,6 +142,234 @@ function buildPersonalLink({ base = null, profile }){
   } catch { return window.location.href; }
 }
 
+// ---------- Program Data (Start • Week 1) ----------
+// Сформировано по вашему PDF "Start — Неделя 1" (Домашние тренировки).
+const PROGRAMS = {
+  S: {
+    name: "Start",
+    weeks: [
+      {
+        name: "Неделя 1",
+        days: [
+          {
+            title: "День 1 — Ноги",
+            place: "Дом",
+            exercises: [
+              {
+                muscle: "Ягодицы",
+                name: "Плие",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Мини‑бэнд"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Спина прямая, ноги шире плеч, носки слегка наружу. Движение плавное, без рывков. До параллели и ниже, возврат без полного выпрямления колен.",
+                videos: []
+              },
+              {
+                muscle: "Квадрицепсы",
+                name: "Разгибания",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Лёжа на спине, резинка вокруг лодыжек/стоп. Разгибаем ноги, фиксируем 1–2 сек вверху, медленно опускаем.",
+                videos: []
+              },
+              {
+                muscle: "Бицепс бедра",
+                name: "Сгибания лёжа",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Лёжа на животе, резинка на лодыжках. Сгибаем ноги к ягодицам, 1–2 сек фиксация, возврат под контролем.",
+                videos: []
+              },
+              {
+                muscle: "Ягодицы",
+                name: "Разведения ног сидя",
+                warmup: false,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Мини‑бэнд"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Сидя, спина прямая, резинка выше колен. Разводим в стороны, 1–2 сек фиксация, возврат без расслабления.",
+                videos: []
+              },
+              {
+                muscle: "Пресс",
+                name: "Скручивания",
+                warmup: false,
+                workSets: 2,
+                reps: "15–30",
+                rest: "60–120 сек",
+                equipment: ["Масса тела"],
+                intensity: "До жжения",
+                notes:
+                  "Без рывков, внизу — растяжение, работаем до выраженного жжения.",
+                videos: []
+              }
+            ]
+          },
+          {
+            title: "День 2 — Верх",
+            place: "Дом",
+            exercises: [
+              {
+                muscle: "Спина",
+                name: "Вертикальная тяга на одну руку",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Фиксируем ленту выше головы, корпус слегка назад, тянем к верху груди, 1–2 сек фиксация.",
+                videos: []
+              },
+              {
+                muscle: "Грудь",
+                name: "Жим лёжа",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Гантели (по желанию)"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Локти ~45° к корпусу, не выпрямляем до конца, 1–2 сек вверху.",
+                videos: []
+              },
+              {
+                muscle: "Спина",
+                name: "Горизонтальная тяга",
+                warmup: false,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Длинная петля", "Плоская лента"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Тянем к корпусу, лопатки сводим, 1–2 сек фиксация.",
+                videos: []
+              },
+              {
+                muscle: "Грудь",
+                name: "Сведение лёжа на грудь",
+                warmup: false,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Гантели"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Слегка согнутые локти, сводим руки, пик‑сокращение 1–2 сек.",
+                videos: []
+              },
+              {
+                muscle: "Пресс",
+                name: "Скручивания",
+                warmup: false,
+                workSets: 3,
+                reps: "15–30",
+                rest: "60–120 сек",
+                equipment: ["Масса тела"],
+                intensity: "До жжения",
+                notes: "Без рывков, до жжения.",
+                videos: []
+              }
+            ]
+          },
+          {
+            title: "День 3 — Ноги/Ягодицы",
+            place: "Дом",
+            exercises: [
+              {
+                muscle: "Ягодицы",
+                name: "Ягодичный мостик",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Гантель на таз", "Мини‑бэнд (над коленями)"] ,
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Спина на краю стула, колени ~90°, фиксируем 1–2 сек вверху, опускаем контролируемо.",
+                videos: []
+              },
+              {
+                muscle: "Бицепс бедра",
+                name: "Сгибания ног стоя",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Мини‑бэнд"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Опора рукой, сгибаем ногу к ягодице, 1–2 сек фиксация.",
+                videos: []
+              },
+              {
+                muscle: "Ягодицы",
+                name: "Отведение ноги в сторону (на четвереньках)",
+                warmup: true,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Мини‑бэнд"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Лента выше колен, корпус стабилен, 1–2 сек фиксация вверху.",
+                videos: []
+              },
+              {
+                muscle: "Ягодицы",
+                name: "Жим ногой на четвереньках",
+                warmup: false,
+                workSets: 3,
+                reps: "12–15",
+                rest: "60–120 сек",
+                equipment: ["Плоская лента", "Мини‑бэнд"],
+                intensity: "Вблизи отказа (1–2 повт.)",
+                notes:
+                  "Выпрямляем ногу назад и вверх, 1–2 сек фиксация.",
+                videos: []
+              },
+              {
+                muscle: "Пресс",
+                name: "Скручивания",
+                warmup: false,
+                workSets: 1,
+                reps: "15–30",
+                rest: "60–120 сек",
+                equipment: ["Масса тела"],
+                intensity: "До жжения",
+                notes: "До жжения, без рывков.",
+                videos: []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  M: { name: "Medium", weeks: [] },
+  P: { name: "Pro", weeks: [] }
+};
+
 // ---------- UI Primitives ----------
 const Section = ({ title, children, right }) => (
   <section className="mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur">
@@ -139,7 +382,7 @@ const Section = ({ title, children, right }) => (
 );
 
 const Pill = ({ children, className = "" }) => (
-  <span className={`inline-flex items-center rounded-full border px-2 py-1 text-xs ${className}`}>{children}</span>
+  <span className={`inline-flex items-center rounded-full border ${BORDER_LITE} px-2 py-1 text-xs ${className}`}>{children}</span>
 );
 
 function NumberCell({ value, setValue, min, max, step = 1 }) {
@@ -175,6 +418,176 @@ function usePwaInstall() {
 
 function isTelegramWebView(){
   return typeof navigator !== 'undefined' && /Telegram/i.test(navigator.userAgent || "");
+}
+
+// ---------- Actions Menu (compact) ----------
+function ActionsMenu({ onSettings, onCopy, onShare, onExport, onImport, onReset }){
+  const [open, setOpen] = useState(false);
+  const fileRef = useRef(null);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(v=>!v)} className={`rounded-full border ${BORDER_LITE} bg-white/0 px-3 py-2 text-sm`}>⋯</button>
+      {open && (
+        <div className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-xl border bg-white shadow-lg">
+          <button onClick={()=>{setOpen(false); onSettings();}} className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-50">⚙️ Настроить</button>
+          <button onClick={()=>{setOpen(false); onCopy();}} className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-50">🔗 Скопировать ссылку</button>
+          {navigator?.share && (
+            <button onClick={()=>{setOpen(false); onShare();}} className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-50">📤 Поделиться</button>
+          )}
+          <button onClick={()=>{setOpen(false); onExport();}} className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-50">⬇️ Экспорт JSON</button>
+          <button onClick={()=>{fileRef.current?.click();}} className="block w-full px-4 py-2 text-left text-sm hover:bg-zinc-50">⬆️ Импорт JSON</button>
+          <button onClick={()=>{setOpen(false); onReset();}} className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">🗑 Сброс</button>
+          <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e)=>{ if(e.target.files?.[0]) { onImport(e.target.files[0]); e.target.value=''; } }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Programs Tab ----------
+function useProgramsState(){
+  return usePersistedState('r7_programs_v1', { level: 'S', week: 0, day: 0, progress: {} });
+}
+
+function keyFor(level, week, day, exIdx){
+  return `${level}.${week}.${day}.${exIdx}`;
+}
+
+function ProgramsTab({ data, setData }){
+  const [ps, setPs] = useProgramsState();
+  const level = ps.level;
+  const prog = PROGRAMS[level] || { weeks: [] };
+  const week = prog.weeks[ps.week] || { days: [] };
+  const day = week.days[ps.day];
+
+  function setLevel(l){ setPs({ ...ps, level: l, week: 0, day: 0 }); }
+  function setWeek(i){ setPs({ ...ps, week: i, day: 0 }); }
+  function setDay(i){ setPs({ ...ps, day: i }); }
+
+  function toggleSet(exIdx, setIdx){
+    const k = keyFor(level, ps.week, ps.day, exIdx);
+    const cur = ps.progress[k] || { sets: [] };
+    const sets = [...(cur.sets || [])];
+    sets[setIdx] = { ...(sets[setIdx] || {}), done: !sets[setIdx]?.done };
+    setPs({ ...ps, progress: { ...ps.progress, [k]: { ...cur, sets } } });
+  }
+  function setCell(exIdx, setIdx, field, value){
+    const k = keyFor(level, ps.week, ps.day, exIdx);
+    const cur = ps.progress[k] || { sets: [] };
+    const sets = [...(cur.sets || [])];
+    sets[setIdx] = { ...(sets[setIdx] || {}), [field]: value };
+    setPs({ ...ps, progress: { ...ps.progress, [k]: { ...cur, sets } } });
+  }
+
+  function isExerciseDone(exIdx, workSets){
+    const k = keyFor(level, ps.week, ps.day, exIdx);
+    const cur = ps.progress[k];
+    const done = (cur?.sets || []).filter(s => s?.done).length;
+    return done >= workSets;
+  }
+
+  function isDayDone(){
+    if (!day) return false;
+    return day.exercises.every((ex, i) => isExerciseDone(i, ex.workSets));
+  }
+
+  function markPlanDayComplete(){
+    const n = prompt('Какой номер дня в Плане отметить выполненным? (1–30)');
+    const idx = Math.max(1, Math.min(30, parseInt(n || '0')));
+    if (!idx) return;
+    const next = [...data.plan];
+    const i = idx - 1;
+    if (next[i]) { next[i].status = true; setData({ ...data, plan: next }); alert(`День ${idx} в Плане отмечен.`); }
+  }
+
+  return (
+    <Section title="Программы тренировок" right={
+      <div className="flex items-center gap-2">
+        <select value={level} onChange={(e)=>setLevel(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
+          <option value="S">Start</option>
+          <option value="M">Medium (скоро)</option>
+          <option value="P">Pro (скоро)</option>
+        </select>
+        <select value={ps.week} onChange={(e)=>setWeek(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
+          {prog.weeks.map((w, i)=>(<option key={i} value={i}>{w.name}</option>))}
+        </select>
+        <select value={ps.day} onChange={(e)=>setDay(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
+          {week.days?.map((d, i)=>(<option key={i} value={i}>{d.title}</option>))}
+        </select>
+      </div>
+    }>
+      {!day ? (
+        <div className="text-sm text-zinc-600">Для выбранного уровня ещё нет загруженных недель. Выберите Start → Неделя 1.</div>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-xl border p-3 text-sm">
+            <div className="mb-1 font-medium">{week.name} · {day.title} · {day.place}</div>
+            <div className="text-zinc-600">Отмечайте выполненные подходы, фиксируйте фактические повторения/веса/RIR.</div>
+          </div>
+
+          {day.exercises.map((ex, exIdx) => (
+            <div key={exIdx} className="rounded-xl border p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs text-zinc-500">{ex.muscle}</div>
+                  <div className="text-base font-semibold">{ex.name}</div>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
+                    <Pill>Рабочих: {ex.workSets}</Pill>
+                    <Pill>Повт.: {ex.reps}</Pill>
+                    <Pill>Отдых: {ex.rest}</Pill>
+                    <Pill>Инт-сть: {ex.intensity}</Pill>
+                    {ex.warmup && <Pill>+ Разминка</Pill>}
+                  </div>
+                </div>
+                <div className="text-xs text-zinc-600">{(isExerciseDone(exIdx, ex.workSets) ? "✅ Выполнено" : "")}</div>
+              </div>
+
+              {ex.equipment?.length > 0 && (
+                <div className="mt-2 text-xs text-zinc-600">Оборудование: {ex.equipment.join(', ')}</div>
+              )}
+              {ex.notes && (
+                <div className="mt-2 text-xs text-zinc-600">Примечания: {ex.notes}</div>
+              )}
+
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50">
+                    <tr>
+                      <th className="px-2 py-2 text-left">Подход</th>
+                      <th className="px-2 py-2 text-left">Повт. факт</th>
+                      <th className="px-2 py-2 text-left">Вес, кг</th>
+                      <th className="px-2 py-2 text-left">RIR</th>
+                      <th className="px-2 py-2 text-left">Сделано</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: ex.workSets }).map((_, si) => {
+                      const k = keyFor(level, ps.week, ps.day, exIdx);
+                      const row = ps.progress[k]?.sets?.[si] || {};
+                      return (
+                        <tr key={si} className="border-b">
+                          <td className="px-2 py-1">{si+1}</td>
+                          <td className="px-2 py-1"><input className="w-24 rounded border px-2 py-1" value={row.reps || ''} onChange={(e)=>setCell(exIdx, si, 'reps', e.target.value)} placeholder={ex.reps} /></td>
+                          <td className="px-2 py-1"><input className="w-24 rounded border px-2 py-1" value={row.weight || ''} onChange={(e)=>setCell(exIdx, si, 'weight', e.target.value)} placeholder="—" /></td>
+                          <td className="px-2 py-1"><input className="w-20 rounded border px-2 py-1" value={row.rir || ''} onChange={(e)=>setCell(exIdx, si, 'rir', e.target.value)} placeholder="1–2" /></td>
+                          <td className="px-2 py-1"><input type="checkbox" checked={!!row.done} onChange={()=>toggleSet(exIdx, si)} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button disabled={!isDayDone()} onClick={markPlanDayComplete} className={`rounded-md px-4 py-2 text-sm ${isDayDone()? 'bg-emerald-600 text-white' : 'bg-zinc-200 text-zinc-500'}`}>{isDayDone()? 'Отметить день выполненным в Плане' : 'Отметьте все подходы чтобы завершить день'}</button>
+            <div className="text-xs text-zinc-500">Завершение дня доступно после отметки всех рабочих подходов.</div>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
 }
 
 // ---------- Onboarding Modal ----------
@@ -239,9 +652,9 @@ function Onboarding({ initial, onClose }){
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs text-zinc-500 truncate" title={personalLink}>{personalLink}</div>
           <div className="flex gap-2">
-            <button onClick={copy} className="rounded-md border px-3 py-2 text-sm">Скопировать ссылку</button>
+            <button onClick={copy} className={`rounded-md border ${BORDER_LITE} px-3 py-2 text-sm`}>Скопировать ссылку</button>
             {typeof navigator !== 'undefined' && navigator.share && (
-              <button onClick={()=>navigator.share({ title: 'R7 Tracker', url: personalLink }).catch(()=>{})} className="rounded-md border px-3 py-2 text-sm">Поделиться</button>
+              <button onClick={()=>navigator.share({ title: 'R7 Tracker', url: personalLink }).catch(()=>{})} className={`rounded-md border ${BORDER_LITE} px-3 py-2 text-sm`}>Поделиться</button>
             )}
             <button onClick={save} className="rounded-md bg-black px-4 py-2 text-sm text-white">Сохранить</button>
           </div>
@@ -354,19 +767,14 @@ export default function R7Tracker() {
       <header className="mb-6 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">R7 — 30‑дневный трекер (дом/зал)</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <button onClick={()=>setShowOB(true)} className="rounded-full border px-4 py-2 text-sm">Настроить</button>
-            <button onClick={copyLink} className="rounded-full border px-4 py-2 text-sm">{justCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</button>
-            {typeof navigator !== 'undefined' && navigator.share && (
-              <button onClick={()=>navigator.share({ title: 'R7 Tracker', url: personalLink }).catch(()=>{})} className="rounded-full border px-4 py-2 text-sm">Поделиться</button>
-            )}
-            <button onClick={exportJson} className="rounded-full bg-black px-4 py-2 text-sm text-white">Экспорт</button>
-            <label className="cursor-pointer rounded-full border px-4 py-2 text-sm">
-              Импорт
-              <input type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
-            </label>
-            <button onClick={resetAll} className="rounded-full border px-4 py-2 text-sm">Сброс</button>
-          </div>
+          <ActionsMenu
+            onSettings={()=>setShowOB(true)}
+            onCopy={copyLink}
+            onShare={()=>navigator.share?.({ title: 'R7 Tracker', url: personalLink }).catch(()=>{})}
+            onExport={exportJson}
+            onImport={importJson}
+            onReset={resetAll}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {data.profile?.name && <Pill className="bg-white/70">👤 {data.profile.name}</Pill>}
@@ -382,7 +790,7 @@ export default function R7Tracker() {
           <Pill className="bg-white/70">Δ вес: <b className="ml-1">{dWeight || "—"} кг</b></Pill>
         </div>
         {(inTG || canInstall) && (
-          <div className="mt-2 rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm">
+          <div className={`mt-2 rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm`}>
             {inTG && (
               <div className="mb-1">Вы открыли трекер внутри Telegram. Чтобы установить как приложение, нажмите <b>⋯</b> → <b>Open in Safari/Chrome</b>, затем «Добавить на экран».</div>
             )}
@@ -394,6 +802,7 @@ export default function R7Tracker() {
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
             ["plan", "План"],
+            ["programs", "Программы"],
             ["sessions", "Сессии"],
             ["measures", "Замеры"],
             ["nutrition", "Питание"],
@@ -402,7 +811,7 @@ export default function R7Tracker() {
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`rounded-full px-4 py-2 text-sm ${tab === k ? "bg-black text-white" : "border"}`}
+              className={`rounded-full px-4 py-2 text-sm ${tab === k ? "bg-black text-white" : `border ${BORDER_LITE}`}`}
             >
               {label}
             </button>
@@ -410,13 +819,17 @@ export default function R7Tracker() {
         </nav>
       </header>
 
+      {tab === "programs" && (
+        <ProgramsTab data={data} setData={setData} />
+      )}
+
       {tab === "plan" && (
         <Section title="План на 30 дней" right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {data.plan.map((d, i) => (
               <div key={i} className="flex items-start justify-between gap-3 rounded-xl border p-3">
                 <div className="min-w-0">
-                  <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
+                  <div className="mb-1 text-sm text-зinz-500">День {d.day}</div>
                   <div className="truncate font-medium">{d.title}</div>
                   <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
                     <Pill>{d.focus}</Pill>
@@ -546,7 +959,7 @@ export default function R7Tracker() {
             </table>
           </div>
           <div className="mt-3">
-            <button onClick={addMeasureRow} className="rounded-md border px-3 py-2 text-sm">+ Добавить строку</button>
+            <button onClick={addMeasureRow} className={`rounded-md border px-3 py-2 text-sm ${BORDER_LITE}`}>+ Добавить строку</button>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
             <div className="rounded-lg bg-emerald-50 p-3">Δ талия: <b>{dWaist || "—"} см</b></div>
@@ -560,7 +973,7 @@ export default function R7Tracker() {
         <Section title="Питание (30 дней)">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-зinc-50">
+              <thead className="bg-zinc-50">
                 <tr>
                   {["Дата","Цель, ккал","Факт, ккал","Белок, г","Жиры, г","Углев., г","Вода, л","Шаги"].map((h)=>(
                     <th key={h} className="px-2 py-2 text-left font-medium text-zinc-600">{h}</th>
