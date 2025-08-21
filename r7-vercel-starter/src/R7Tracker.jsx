@@ -663,7 +663,6 @@ function ProgramsTab({ data, setData }) {
               value={row.weight || ""}
               onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
             />
-            <span className="text-[10px] text-zinc-500">кг</span>
           </div>
 
           {/* RIR */}
@@ -674,6 +673,10 @@ function ProgramsTab({ data, setData }) {
               value={row.rir || ""}
               onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
             />
+            <div className="flex items-center">
+  <InputMini value={...} onChange={...} placeholder="1–2" />
+  <span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
+</div>
           </div>
 
           {/* Сделано */}
