@@ -411,6 +411,28 @@ function InputMini({ className = "", ...props }) {
   );
 }
 
+function RIRSelect({ value, setValue }) {
+  // сохраняем строку "F" для состояния "Отказ"
+  const OPTIONS = ["3", "2", "1", "0", "Отказ"];
+  const toValue = (o) => (o === "Отказ" ? "F" : o);
+
+  return (
+    <select
+      aria-label="RIR (повторы в запасе)"
+      value={value ?? ""}
+      onChange={(e) => setValue(e.target.value)}
+      className="w-16 rounded-md border border-zinc-300 px-2 py-1 text-center text-sm"
+    >
+      <option value="">{/* пусто как placeholder */}—</option>
+      {OPTIONS.map((o) => (
+        <option key={o} value={toValue(o)}>
+          {o}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 
 /* ===================== PWA / Telegram ===================== */
 function usePwaInstall() {
@@ -666,17 +688,22 @@ function ProgramsTab({ data, setData }) {
           </div>
 
 
-{/* RIR + подпись справа */}
+{/* RIR (селект) */}
 <div className="col-span-2">
-  <div className="flex items-center">
-    <InputMini
-      aria-label="RIR"
-      placeholder="1–2"
-      value={row.rir || ""}
-      onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
-    />
-    <span className="ml-1 w-8 text-center text-[10px] text-zinc-500">RIR</span>
-  </div>
+  <select
+    aria-label="RIR"
+    value={row.rir ?? ""}
+    onChange={(e) => setCell(exIdx, si, "rir", e.target.value)}
+    className="h-8 w-[68px] rounded-md border border-zinc-300 px-1 text-center text-sm"
+  >
+    <option value="" disabled>RIR</option>
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="отказ">Отказ</option>
+  </select>
 </div>
 
 {/* Сделано */}
