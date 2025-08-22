@@ -399,10 +399,15 @@ function ProgramsTab({ data, setData }) {
   // «Как в прошлый раз»
   function copyLast(exIdx) {
     const ex = day.exercises[exIdx];
-    const last = (() => {
-      try { return JSON.parse(localStorage.getItem(`r7:last:${exId(level, ps.week, ps.day, ex)}`) || "null"); } catch { return null; }
-    })();
-    if (!last) return;
+    let last = null;
+try {
+  const key = 'r7:last:' + exId(level, ps.week, ps.day, ex);
+  const raw = localStorage.getItem(key);
+  last = raw ? JSON.parse(raw) : null;
+} catch (e) {
+  last = null;
+}
+if (!last) return;
     const k = keyFor(level, ps.week, ps.day, exIdx);
     const need = Math.max(ex.workSets || 0, last.length);
     const sets = Array.from({ length: need }).map((_, i) => ({
