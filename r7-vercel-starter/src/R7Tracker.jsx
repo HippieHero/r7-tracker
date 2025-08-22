@@ -372,24 +372,29 @@ function ProgramsTab({ data, setData }) {
     }
   }
 
+  // универсальный апдейтер ячейки (функциональный!)
   function setCell(exIdx, setIdx, field, value) {
     startSessionIfNeeded();
     const k = keyFor(level, ps.week, ps.day, exIdx);
-    const cur = ps.progress[k] || { sets: [] };
-    const sets = [...(cur.sets || [])];
-    sets[setIdx] = { ...(sets[setIdx] || {}), [field]: value };
-    setPs({ ...ps, progress: { ...ps.progress, [k]: { ...cur, sets } } });
+    setPs(prev => {
+      const cur = prev.progress[k] || { sets: [] };
+      const sets = [...(cur.sets || [])];
+      sets[setIdx] = { ...(sets[setIdx] || {}), [field]: value };
+      return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
+    });
   }
 
   function toggleSet(exIdx, setIdx) {
     startSessionIfNeeded();
     const k = keyFor(level, ps.week, ps.day, exIdx);
-    const cur = ps.progress[k] || { sets: [] };
-    const sets = [...(cur.sets || [])];
-    const next = !sets[setIdx]?.done;
-    sets[setIdx] = { ...(sets[setIdx] || {}), done: next };
-    setPs({ ...ps, progress: { ...ps.progress, [k]: { ...cur, sets } } });
-    if (next) vibrate(12);
+    setPs(prev => {
+      const cur = prev.progress[k] || { sets: [] };
+      const sets = [...(cur.sets || [])];
+      const next = !sets[setIdx]?.done;
+      sets[setIdx] = { ...(sets[setIdx] || {}), done: next };
+      return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
+    });
+    vibrate(12);
     setTimeout(endSessionIfDone, 0);
   }
 
@@ -426,7 +431,7 @@ function ProgramsTab({ data, setData }) {
       rir: last[i]?.rir || "",
       done: false,
     }));
-    setPs({ ...ps, progress: { ...ps.progress, [k]: { sets } } });
+    setPs(prev => ({ ...prev, progress: { ...prev.progress, [k]: { sets } } }));
   }
 
   // видео: открыть/скопировать, кеш ссылок
@@ -626,22 +631,30 @@ function ProgramsTab({ data, setData }) {
                           <RirSelect
                             value={row.rir ?? ""}
                             onChange={(val) => {
-                              setCell(exIdx, si, "rir", val);
-                              if (si === 0 && val) {
-                                // залипание RIR — в остальные пустые
-                                for (let j = 1; j < (ex.workSets || 0); j++) {
-                                  const r = (ps.progress[keyFor(level, ps.week, ps.day, exIdx)]?.sets || [])[j] || {};
-                                  if (!r.rir) setCell(exIdx, j, "rir", val);
+                              // 👇 один атомарный апдейт без потерь и «уезжаний»
+                              const key = keyFor(level, ps.week, ps.day, exIdx);
+                              setPs(prev => {
+                                const cur = prev.progress[key] || { sets: [] };
+                                const sets = [...(cur.sets || [])];
+                                // текущий сет
+                                sets[si] = { ...(sets[si] || {}), rir: val };
+                                // залипание из первого сета
+                                if (si === 0 && val) {
+                                  for (let j = 1; j < (ex.workSets || 0); j++) {
+                                    const r = sets[j] || {};
+                                    if (!r.rir) sets[j] = { ...r, rir: val };
+                                  }
                                 }
-                              }
+                                return { ...prev, progress: { ...prev.progress, [key]: { ...cur, sets } } };
+                              });
                             }}
-                            onEnter={() => { toggleSet(exIdx, si); vibrate(12); }}
+                            onEnter={() => { toggleSet(exIdx, si); }}
                           />
                         </div>
 
                         <button
                           onClick={() => toggleSet(exIdx, si)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full border text-lg transition-transform duration-150 ${row.done ? "scale-105 bg-emerald-500 text-white" : "bg-white text-zinc-600"}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border text-lg transition-transform transition-opacity duration-150 ${row.done ? "scale-105 bg-emerald-500 text-white" : "bg-white text-zinc-600"}`}
                           aria-label="Сделано"
                           title="Сделано"
                         >
@@ -697,15 +710,21 @@ function ProgramsTab({ data, setData }) {
                                 <RirSelect
                                   value={row.rir ?? ""}
                                   onChange={(val) => {
-                                    setCell(exIdx, si, "rir", val);
-                                    if (si === 0 && val) {
-                                      for (let j = 1; j < (ex.workSets || 0); j++) {
-                                        const r = (ps.progress[keyFor(level, ps.week, ps.day, exIdx)]?.sets || [])[j] || {};
-                                        if (!r.rir) setCell(exIdx, j, "rir", val);
+                                    const key = keyFor(level, ps.week, ps.day, exIdx);
+                                    setPs(prev => {
+                                      const cur = prev.progress[key] || { sets: [] };
+                                      const sets = [...(cur.sets || [])];
+                                      sets[si] = { ...(sets[si] || {}), rir: val };
+                                      if (si === 0 && val) {
+                                        for (let j = 1; j < (ex.workSets || 0); j++) {
+                                          const r = sets[j] || {};
+                                          if (!r.rir) sets[j] = { ...r, rir: val };
+                                        }
                                       }
-                                    }
+                                      return { ...prev, progress: { ...prev.progress, [key]: { ...cur, sets } } };
+                                    });
                                   }}
-                                  onEnter={() => { toggleSet(exIdx, si); vibrate(12); }}
+                                  onEnter={() => { toggleSet(exIdx, si); }}
                                 />
                               </div>
                             </td>
