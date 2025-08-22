@@ -336,7 +336,7 @@ function ProgramsTab({ data, setData }) {
   }, [day, ps.progress, level, ps.week, ps.day]);
 
   // session timer (липкая панель)
-  const restKey = `${level}.${ps.week}.${ps.day}.rest`;
+  const restKey = `${level}.${ps.week}.${ps.day}.rest";
   const [restEnd, setRestEnd] = useState(() => {
     try { return Number(localStorage.getItem(restKey) || 0); } catch { return 0; }
   });
@@ -471,7 +471,7 @@ function ProgramsTab({ data, setData }) {
   return (
     <Section title="Программы тренировок" right={null}>
       {/* Неклейкий блок с контролами — остаётся на месте */}
-      <div className="mb-2">
+      <div className="mb-3">
         <Controls
           level={level} setLevel={setLevel}
           prog={prog} weekIdx={ps.week} setWeek={setWeek}
@@ -533,7 +533,7 @@ function ProgramsTab({ data, setData }) {
                   )}
 
                   {/* Суперкомпактная строка параметров: 3×12–15 · 60–120с · 1–2RIR */}
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-zinc-600">
+                  <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-zinc-600">
                     <span className="rounded bg-zinc-100 px-1.5 py-0.5">Рабочих: {ex.workSets}</span>
                     <span>·</span>
                     <span className="rounded bg-zinc-100 px-1.5 py-0.5">Повт.: {ex.reps}</span>
@@ -554,7 +554,7 @@ function ProgramsTab({ data, setData }) {
 
               {/* Примечания — свёрнуты по умолчанию */}
               {ex.notes && (
-                <details className="mt-2">
+                <details className="mt-1">
                   <summary className="cursor-pointer text-sm text-zinc-700">Примечания</summary>
                   <div className="mt-2 text-sm text-zinc-600">
                     {ex.equipment?.length > 0 && <div className="mb-1 text-xs">Оборудование: {ex.equipment.join(", ")}</div>}
@@ -565,12 +565,12 @@ function ProgramsTab({ data, setData }) {
 
               {/* Сеты: мобильные карточки */}
               <div className="mt-2">
-                <div className="space-y-2 sm:hidden">
+                <div className="space-y-3 sm:hidden">
                   {Array.from({ length: ex.workSets }).map((_, si) => {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-2 rounded-xl border border-zinc-200 p-2">
+                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_78px_40px] items-center gap-2 rounded-xl border border-zinc-200 p-2">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
@@ -643,8 +643,8 @@ function ProgramsTab({ data, setData }) {
                         const idBase = `${exIdx}-desk-${si}`;
                         return (
                           <tr key={si} className="border-b">
-                            <td className="px-2 py-1">{si+1}</td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-2">{si+1}</td>
+                            <td className="px-2 py-2">
                               <input
                                 className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.reps || ""}
@@ -654,7 +654,7 @@ function ProgramsTab({ data, setData }) {
                                 inputMode="numeric"
                               />
                             </td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-2">
                               <input
                                 id={`kg-${idBase}`}
                                 className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
@@ -665,7 +665,7 @@ function ProgramsTab({ data, setData }) {
                                 inputMode="decimal"
                               />
                             </td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-2">
                               <div id={`rir-${idBase}`} className="w-24">
                                 <RirSelect
                                   value={row.rir ?? ""}
@@ -688,7 +688,7 @@ function ProgramsTab({ data, setData }) {
                                 />
                               </div>
                             </td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-2">
                               <input type="checkbox" checked={!!row.done} onChange={() => { toggleSet(exIdx, si); }} />
                             </td>
                           </tr>
@@ -734,7 +734,7 @@ function ProgramsTab({ data, setData }) {
 function StickyInfoBar({ doneSets, totalSets, rightTimer }) {
   const pct = (doneSets/Math.max(1,totalSets))*100;
   return (
-    <div className="sticky top-0 z-30 -mx-4 bg-white/85 px-4 pb-2 pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div className="sticky top-0 z-30 -mx-4 bg-white/85 px-4 pb-3 pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium">{doneSets}/{totalSets} подходов</div>
@@ -847,18 +847,18 @@ function MeasuresTab({ data, setData }) {
 
   return (
     <Section title="Замеры и фото" right={<button onClick={addRow} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">+ строка</button>}>
-      <p className="mb-3 text-sm text-zinc-600">Добавляйте 3 ключевые точки: старт → середина → финиш. Разница (Δ) считается относительно самой первой записи.</p>
-      <div className="space-y-3">
+      <p className="mb-4 text-sm leading-5 text-zinc-600">Добавляйте 3 ключевые точки: старт → середина → финиш. Разница (Δ) считается относительно самой первой записи.</p>
+      <div className="space-y-4">
         {rows.map((r, i) => (
-          <div key={i} className="rounded-xl border border-zinc-300 bg-white p-3 shadow-sm">
-            <div className="mb-2 flex items-center justify-between gap-3">
+          <div key={i} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
               <label className="text-sm">Дата
                 <input type="date" className="mt-1 rounded-md border border-zinc-300 px-3 py-2" value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})} />
               </label>
               <button onClick={()=>delRow(i)} className="rounded-md border border-zinc-300 px-3 py-2 text-xs">Удалить</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <label className="text-sm">
                 <span className="block text-xs text-zinc-500">Вес, кг · <Delta v={r.weight} baseV={base.weight} unit="кг" /></span>
                 <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-right" inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})} placeholder="например, 65.2" />
@@ -875,9 +875,9 @@ function MeasuresTab({ data, setData }) {
               </label>
             </div>
 
-            <label className="mt-3 block text-sm">
+            <label className="mt-4 block text-sm">
               <span className="block text-xs text-zinc-500">Заметка</span>
-              <textarea className="mt-1 w-full rounded-md border border-zinc-300 p-2" rows={2} value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, фаза цикла, вода..." />
+              <textarea className="mt-1 w-full rounded-md border border-zinc-300 p-2" rows={3} value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, фаза цикла, вода..." />
             </label>
 
             <label className="mt-3 block text-sm">
@@ -889,7 +889,7 @@ function MeasuresTab({ data, setData }) {
       </div>
 
       {/* Итоговые дельты по последней записи */}
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ талия: <Delta v={rows[rows.length-1]?.waist} baseV={base.waist} unit="см" /></div>
         <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ бёдра: <Delta v={rows[rows.length-1]?.hips} baseV={base.hips} unit="см" /></div>
         <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ вес: <Delta v={rows[rows.length-1]?.weight} baseV={base.weight} unit="кг" /></div>
@@ -924,12 +924,25 @@ export default function R7Tracker() {
     </div>
   );
 
+  // Дельты прогресса (из замеров) для шапки
+  const base = data.measures?.[0] || {};
+  const last = data.measures?.[data.measures.length - 1] || {};
+  const diff = (cur, b, unit) => {
+    const a = N(cur), bb = N(b);
+    if (!a || !bb) return { text: `— ${unit}`, cls: "text-zinc-500" };
+    const d = +(a - bb).toFixed(1);
+    return { text: `${d > 0 ? "+" : ""}${d} ${unit}`, cls: d === 0 ? "text-zinc-600" : d > 0 ? "text-rose-600" : "text-emerald-600" };
+  };
+  const dWaist = diff(last.waist, base.waist, "см");
+  const dHips  = diff(last.hips,  base.hips,  "см");
+  const dW     = diff(last.weight,base.weight,"кг");
+
   const personalLink = buildPersonalLink({ profile: data.profile });
   const copyLink = async () => { try { await navigator.clipboard.writeText(personalLink); alert("Ссылка скопирована"); } catch { prompt("Скопируйте ссылку:", personalLink); } };
 
   return (
     <div className="mx-auto max-w-6xl p-4 text-zinc-800">
-      <header className="mb-6 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
+      <header className="mb-6 flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">R7 — трекер</h1>
           <ActionsMenu
@@ -964,15 +977,22 @@ export default function R7Tracker() {
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
+        {/* Δ талия / бёдра / вес — всегда под рукой */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill className="bg-white/80">Δ талия: <span className={`ml-1 ${dWaist.cls}`}>{dWaist.text}</span></Pill>
+          <Pill className="bg-white/80">Δ бёдра: <span className={`ml-1 ${dHips.cls}`}>{dHips.text}</span></Pill>
+          <Pill className="bg-white/80">Δ вес: <span className={`ml-1 ${dW.cls}`}>{dW.text}</span></Pill>
+        </div>
+
         {(inTG || canInstall) && (
-          <div className="mt-2 rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm">
+          <div className="rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm">
             {inTG && <div className="mb-1">Откройте трекер в Safari/Chrome и «Добавить на экран» для установки как приложение.</div>}
             {canInstall && <button onClick={install} className="mt-2 rounded-md bg-black px-3 py-2 text-white">Установить как приложение</button>}
           </div>
         )}
 
         {/* Навигация: 3 раздела */}
-        <nav className="mt-2 flex flex-wrap gap-2">
+        <nav className="flex flex-wrap gap-2">
           {[
             ["programs", "Программы"],
             ["plan", "План"],
