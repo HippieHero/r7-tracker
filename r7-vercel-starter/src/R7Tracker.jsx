@@ -396,20 +396,25 @@ function NumberCell({ value, setValue, min, max, step = 1 }) {
   );
 }
 
-// Узкий инпут для мобилки
-function InputMini({ className = "", ...props }) {
+// Узкий инпут для мобилки + ref для автофокуса
+const InputMini = React.forwardRef(function InputMini(
+  { className = "", ...props },
+  ref
+) {
   return (
     <input
-      {...props}
+      ref={ref}
       inputMode="decimal"
-      pattern="[0-9,.]*"
+      pattern="[0-9.,]*"
       className={[
         "h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-xs",
         className,
       ].join(" ")}
+      {...props}
     />
   );
-}
+});
+
 
 function RIRSelect({ value, setValue }) {
   // сохраняем строку "F" для состояния "Отказ"
