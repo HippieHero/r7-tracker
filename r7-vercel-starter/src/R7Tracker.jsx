@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== Helpers / Constants ===================== */
-const STORAGE_KEY = "r7_tracker_v4";          // bump: новая схема локального хранилища
-const PROG_KEY    = "r7_programs_v2";         // bump: прогресс программ
-const BORDER_LITE = "border-[#d9dce1]";
+const STORAGE_KEY = "r7_tracker_v4";
+const PROG_KEY    = "r7_programs_v2";
+const BORDER_LITE = "border-zinc-300";
 const DEFAULT_DAYS = 30;
 
 // haptics
@@ -23,28 +23,14 @@ const iso = (d) => {
   return `${y}-${m}-${dd}`;
 };
 
-// make localStorage state
+// localStorage state
 function usePersistedState(key, initial) {
   const [state, setState] = React.useState(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : initial;
-    } catch {
-      return initial;
-    }
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : initial; } catch { return initial; }
   });
-  useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(state)); } catch {}
-  }, [key, state]);
+  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(state)); } catch {} }, [key, state]);
   return [state, setState];
 }
-
-// safe lens
-const ensureLen = (arr, len, factory) => {
-  const out = arr.slice(0, len);
-  while (out.length < len) out.push(factory());
-  return out;
-};
 
 function getQuery() {
   try {
@@ -68,7 +54,6 @@ function buildPersonalLink({ base = null, profile }) {
 }
 
 /* ===================== Demo Data (Start • Дом) ===================== */
-// Видеоссылки можно подставлять сюда (кастомизируй под свой контент)
 const VK_CRUNCH = "https://vkvideo.ru/video-226154718_456239154";
 
 const WEEK1_DAYS = [
@@ -160,21 +145,6 @@ const Pill = ({ children, className = "" }) => (
   <span className={`inline-flex items-center rounded-full border ${BORDER_LITE} px-2 py-1 text-xs text-zinc-600 ${className}`}>{children}</span>
 );
 
-function NumberCell({ value, setValue, min, max, step = 1 }) {
-  return (
-    <input
-      type="number"
-      value={value ?? ""}
-      onChange={(e) => setValue(e.target.value)}
-      min={min}
-      max={max}
-      step={step}
-      className="w-20 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-    />
-  );
-}
-
-// узкие инпуты (мобайл) с Enter-хендлером
 const InputMini = React.forwardRef(function InputMini(
   { className = "", onEnter, ...props },
   ref
@@ -209,7 +179,7 @@ const rirColor = (v) => v === "0" ? "border-rose-300 bg-rose-50"
 
 const RirSelect = React.forwardRef(function RirSelect({ value, onChange, onEnter }, ref) {
   return (
-    <div className={["h-8 rounded-md", rirColor(value || "")].join(" ")}>
+    <div className={["h-8 rounded-md", rirColor(value || ""), "border"].join(" ")}>
       <select
         ref={ref}
         className="h-full w-full rounded-md bg-transparent pl-2 pr-6 text-xs"
@@ -243,7 +213,7 @@ function usePwaInstall() {
 }
 const isTelegramWebView = () => typeof navigator !== "undefined" && /Telegram/i.test(navigator.userAgent || "");
 
-/* ===================== Actions (collapsed in ⋯) ===================== */
+/* ===================== Actions (⋯) ===================== */
 function ActionsMenu({ onSettings, onCopy, onShare, onExport, onImport, onReset }) {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -290,14 +260,12 @@ function useProgramsState() {
 const keyFor = (level, week, day, exIdx) => `${level}.${week}.${day}.${exIdx}`;
 const exId = (level, week, day, ex) => `${level}.${week}.${day}.${(ex?.name || "ex").toLowerCase().replace(/\s+/g,"_")}`;
 
-// сохранить «прошлый раз» по дню (после завершения)
 function saveDayHistory(level, week, day, dayObj, progress) {
   dayObj.exercises.forEach((ex, exIdx) => {
     const k = keyFor(level, week, day, exIdx);
     const rows = progress[k]?.sets || [];
     const payload = rows.map(r => ({ reps: r?.reps || "", weight: r?.weight || "", rir: r?.rir || "" }));
     try { localStorage.setItem(`r7:last:${exId(level, week, day, ex)}`, JSON.stringify(payload)); } catch {}
-    // кеш первой ссылki видео
     if (ex?.videos?.[0]?.href) {
       try { localStorage.setItem(`r7:video:${exId(level, week, day, ex)}`, ex.videos[0].href); } catch {}
     }
@@ -334,7 +302,7 @@ function ProgramsTab({ data, setData }) {
   const setWeek  = (i) => setPs({ ...ps, week: i, day: 0 });
   const setDay   = (i) => setPs({ ...ps, day: i });
 
-  // sticky bar + progress
+  // progress numbers
   const totalSets = useMemo(() => {
     if (!day) return 0;
     return day.exercises.reduce((a, ex) => a + (ex.workSets || 0), 0);
@@ -349,32 +317,28 @@ function ProgramsTab({ data, setData }) {
     }, 0);
   }, [day, ps.progress, level, ps.week, ps.day]);
 
-  // session timer
-  const session = ps.session?.[`${level}.${ps.week}.${ps.day}`] || {};
-  const sessionStart = session.start || null;
-  const sessionEnd   = session.end || null;
-  const elapsedMs = (() => {
-    const to = sessionEnd || Date.now();
-    const from = sessionStart || to;
-    return Math.max(0, to - from);
-  })();
+  // session timer (липкая панель)
+  const restKey = `${level}.${ps.week}.${ps.day}.rest`;
+  const [restEnd, setRestEnd] = useState(() => {
+    try { return Number(localStorage.getItem(restKey) || 0); } catch { return 0; }
+  });
+  useEffect(() => { try { localStorage.setItem(restKey, String(restEnd)); } catch {} }, [restKey, restEnd]);
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!restEnd) return;
+    const t = setInterval(() => {
+      if (Date.now() >= restEnd) { clearInterval(t); setRestEnd(0); vibrate(35); }
+      else forceTick(x => x + 1);
+    }, 300);
+    return () => clearInterval(t);
+  }, [restEnd]);
 
-  function startSessionIfNeeded() {
-    const key = `${level}.${ps.week}.${ps.day}`;
-    if (!ps.session?.[key]?.start) {
-      setPs((prev) => ({ ...prev, session: { ...prev.session, [key]: { start: Date.now(), end: null }}}));
-    }
-  }
-  function endSessionIfDone() {
-    const key = `${level}.${ps.week}.${ps.day}`;
-    if (doneSets >= totalSets && totalSets > 0) {
-      setPs((prev) => ({ ...prev, session: { ...prev.session, [key]: { ...(prev.session?.[key] || {}), end: Date.now() }}}));
-    }
-  }
+  const leftMs = Math.max(0, restEnd - Date.now());
+  const mm = String(Math.floor(leftMs / 1000 / 60)).padStart(2, "0");
+  const ss = String(Math.floor((leftMs / 1000) % 60)).padStart(2, "0");
 
-  // универсальный апдейтер ячейки (функциональный!)
+  // апдейтер ячейки (функциональный: исключает гонки и «уезжания»)
   function setCell(exIdx, setIdx, field, value) {
-    startSessionIfNeeded();
     const k = keyFor(level, ps.week, ps.day, exIdx);
     setPs(prev => {
       const cur = prev.progress[k] || { sets: [] };
@@ -385,7 +349,6 @@ function ProgramsTab({ data, setData }) {
   }
 
   function toggleSet(exIdx, setIdx) {
-    startSessionIfNeeded();
     const k = keyFor(level, ps.week, ps.day, exIdx);
     setPs(prev => {
       const cur = prev.progress[k] || { sets: [] };
@@ -395,7 +358,6 @@ function ProgramsTab({ data, setData }) {
       return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
     });
     vibrate(12);
-    setTimeout(endSessionIfDone, 0);
   }
 
   function isExerciseDone(exIdx, workSets) {
@@ -407,7 +369,7 @@ function ProgramsTab({ data, setData }) {
 
   function addSet(exIdx) {
     day.exercises[exIdx].workSets = (day.exercises[exIdx].workSets || 0) + 1;
-    setPs({ ...ps }); // перерендер
+    setPs({ ...ps });
   }
   function removeLastSet(exIdx) {
     if ((day.exercises[exIdx].workSets || 0) > 1) {
@@ -434,7 +396,7 @@ function ProgramsTab({ data, setData }) {
     setPs(prev => ({ ...prev, progress: { ...prev.progress, [k]: { sets } } }));
   }
 
-  // видео: открыть/скопировать, кеш ссылок
+  // видео
   function getVideoHref(ex) {
     const alt = (() => { try { return localStorage.getItem(`r7:video:${exId(level, ps.week, ps.day, ex)}`) || ""; } catch { return ""; }})();
     return ex?.videos?.[0]?.href || alt || "";
@@ -451,45 +413,10 @@ function ProgramsTab({ data, setData }) {
     }).catch(() => { prompt("Скопируйте ссылку вручную:", href); });
   }
 
-  // пометить день в Плане выполненным + сохранить «прошлый раз»
-  function markPlanDayComplete() {
-    const n = prompt("Какой номер дня в Плане отметить выполненным? (1–30)");
-    const idx = Math.max(1, Math.min(30, parseInt(n || "0")));
-    if (!idx) return;
-    const next = [...data.plan];
-    const i = idx - 1;
-    if (next[i]) {
-      next[i].status = true;
-      setData({ ...data, plan: next });
-      saveDayHistory(level, ps.week, ps.day, day, ps.progress);
-      alert(`День ${idx} отмечен. Значения сохранены как «прошлый раз».`);
-    }
-  }
-
-  // sticky bar (выбор недели/дня)
-  const stickyBar = (
-    <div className="sticky top-0 z-30 -mx-4 bg-white/80 px-4 pb-2 pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Controls
-          level={level} setLevel={setLevel}
-          prog={prog} weekIdx={ps.week} setWeek={setWeek}
-          dayIdx={ps.day} setDay={setDay}
-        />
-        <div className="min-w-[140px] text-right text-xs text-zinc-600">
-          {doneSets}/{totalSets} подходов
-        </div>
-      </div>
-      <div className="mt-1 h-1 w-full overflow-hidden rounded bg-zinc-200">
-        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${(doneSets/Math.max(1,totalSets))*100}%` }} />
-      </div>
-    </div>
-  );
-
   // микростаты дня
   const dayStats = useMemo(() => {
     if (!day) return { volume: 0, avgRir: "-", time: "-" };
-    let vol = 0;
-    let rirSum = 0, rirNum = 0;
+    let vol = 0; let rirSum = 0, rirNum = 0;
     day.exercises.forEach((ex, exIdx) => {
       const k = keyFor(level, ps.week, ps.day, exIdx);
       const rows = ps.progress[k]?.sets || [];
@@ -502,16 +429,23 @@ function ProgramsTab({ data, setData }) {
       });
     });
     const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
-    const mm = Math.floor(elapsedMs/1000/60);
-    const ss = Math.floor((elapsedMs/1000)%60);
-    const time = sessionStart ? `${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}` : "-";
-    return { volume: Math.round(vol), avgRir: avg, time };
-  }, [day, ps.progress, elapsedMs, sessionStart, level, ps.week, ps.day]);
+    return { volume: Math.round(vol), avgRir: avg, time: `${mm}:${ss}` };
+  }, [day, ps.progress, mm, ss, level, ps.week, ps.day]);
 
   if (!day) {
     return (
       <Section title="Программы тренировок" right={null}>
-        {stickyBar}
+        {/* Неклейкий блок с контролами */}
+        <div className="mb-3">
+          <Controls
+            level={level} setLevel={setLevel}
+            prog={prog} weekIdx={ps.week} setWeek={setWeek}
+            dayIdx={ps.day} setDay={setDay}
+          />
+        </div>
+        {/* Тонкая липкая полоска — будет видна при прокрутке, когда появится контент */}
+        <StickyInfoBar doneSets={doneSets} totalSets={totalSets} leftContent={null}
+          rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }} />
         <div className="mt-3 text-sm text-zinc-600">Выберите Start → Неделя 1.</div>
       </Section>
     );
@@ -519,29 +453,37 @@ function ProgramsTab({ data, setData }) {
 
   return (
     <Section title="Программы тренировок" right={null}>
-      {stickyBar}
-
-      {/* Микростаты дня */}
-      <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-        <div className="rounded-lg bg-zinc-50 p-2 text-center">Объём: <b>{dayStats.volume}</b> кг</div>
-        <div className="rounded-lg bg-zinc-50 p-2 text-center">Средн. RIR: <b>{dayStats.avgRir}</b></div>
-        <div className="rounded-lg bg-zinc-50 p-2 text-center">Время: <b>{dayStats.time}</b></div>
+      {/* Неклейкий блок с контролами — остаётся на месте */}
+      <div className="mb-3">
+        <Controls
+          level={level} setLevel={setLevel}
+          prog={prog} weekIdx={ps.week} setWeek={setWeek}
+          dayIdx={ps.day} setDay={setDay}
+        />
       </div>
 
+      {/* Липкая информационная панель: слева прогресс/полоса, справа таймер */}
+      <StickyInfoBar
+        doneSets={doneSets}
+        totalSets={totalSets}
+        leftContent={<div className="text-xs text-zinc-600">Объём: <b>{dayStats.volume}</b> кг · Средн. RIR: <b>{dayStats.avgRir}</b></div>}
+        rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
+      />
+
+      {/* Списки упражнений */}
       <div className="mt-4 space-y-4">
         {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
           const progress = ps.progress[k]?.sets || [];
           const exDone = isExerciseDone(exIdx, ex.workSets);
 
-          // long press меню
           const [menuOpen, setMenuOpen] = React.useState(false);
           const holdRef = React.useRef(null);
           const onHoldStart = () => { holdRef.current = setTimeout(() => setMenuOpen(true), 500); };
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <div key={exIdx} id={`ex-${exIdx}`} className="rounded-xl border p-4">
+            <div key={exIdx} id={`ex-${exIdx}`} className="rounded-xl border border-zinc-300 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-xs text-zinc-500">{ex.muscle}</div>
@@ -553,11 +495,10 @@ function ProgramsTab({ data, setData }) {
                   >
                     <div className="text-base font-semibold">{ex.name}</div>
                     {getVideoHref(ex) && (
-                      <button onClick={() => openVideo(ex)} className="rounded-full border px-2 py-0.5 text-xs">▶︎ Видео</button>
+                      <button onClick={() => openVideo(ex)} className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs">▶︎ Видео</button>
                     )}
                   </div>
 
-                  {/* контекстное меню по долгому тапу */}
                   {menuOpen && (
                     <div className="z-10 mt-2 w-44 overflow-hidden rounded-xl border bg-white text-sm shadow-lg">
                       <button className="block w-full px-3 py-2 text-left hover:bg-zinc-50"
@@ -571,6 +512,7 @@ function ProgramsTab({ data, setData }) {
                     </div>
                   )}
 
+                  {/* Компактная строка параметров упражнения */}
                   <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
                     <Pill>Рабочих: {ex.workSets}</Pill>
                     <Pill>Повт.: {ex.reps}</Pill>
@@ -581,9 +523,9 @@ function ProgramsTab({ data, setData }) {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button onClick={() => addSet(exIdx)} className="rounded-md border px-2 py-1 text-xs">+ подход</button>
-                  <button onClick={() => removeLastSet(exIdx)} className="rounded-md border px-2 py-1 text-xs">–</button>
-                  <div className="text-xs text-zinc-600">{exDone ? "✅ Выполнено" : ""}</div>
+                  <button onClick={() => addSet(exIdx)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">+ подход</button>
+                  <button onClick={() => removeLastSet(exIdx)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">–</button>
+                  <div className="text-xs text-zinc-600">{exDone ? "✅" : ""}</div>
                 </div>
               </div>
 
@@ -591,7 +533,7 @@ function ProgramsTab({ data, setData }) {
                 <div className="mt-2 text-xs text-zinc-600">Оборудование: {ex.equipment.join(", ")}</div>
               )}
 
-              {/* Примечания (свернуты по умолчанию) */}
+              {/* Примечания — свёрнуты по умолчанию */}
               {ex.notes && (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-sm text-zinc-700">Примечания</summary>
@@ -599,16 +541,15 @@ function ProgramsTab({ data, setData }) {
                 </details>
               )}
 
-              {/* Компактные карточки сетов на мобиле; таблица — на >=sm */}
+              {/* Сеты: мобильные карточки */}
               <div className="mt-3">
-                {/* mobile */}
                 <div className="space-y-2 sm:hidden">
                   {Array.from({ length: ex.workSets }).map((_, si) => {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-2 rounded-xl border p-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full border text-xs">{si+1}</span>
+                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-2 rounded-xl border border-zinc-200 p-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
                           aria-label="Повторы"
@@ -631,14 +572,11 @@ function ProgramsTab({ data, setData }) {
                           <RirSelect
                             value={row.rir ?? ""}
                             onChange={(val) => {
-                              // 👇 один атомарный апдейт без потерь и «уезжаний»
                               const key = keyFor(level, ps.week, ps.day, exIdx);
                               setPs(prev => {
                                 const cur = prev.progress[key] || { sets: [] };
                                 const sets = [...(cur.sets || [])];
-                                // текущий сет
                                 sets[si] = { ...(sets[si] || {}), rir: val };
-                                // залипание из первого сета
                                 if (si === 0 && val) {
                                   for (let j = 1; j < (ex.workSets || 0); j++) {
                                     const r = sets[j] || {};
@@ -654,7 +592,7 @@ function ProgramsTab({ data, setData }) {
 
                         <button
                           onClick={() => toggleSet(exIdx, si)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full border text-lg transition-transform transition-opacity duration-150 ${row.done ? "scale-105 bg-emerald-500 text-white" : "bg-white text-zinc-600"}`}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-lg transition-all duration-150 ${row.done ? "scale-105 bg-emerald-500 text-white" : "bg-white text-zinc-600"}`}
                           aria-label="Сделано"
                           title="Сделано"
                         >
@@ -665,7 +603,7 @@ function ProgramsTab({ data, setData }) {
                   })}
                 </div>
 
-                {/* desktop/tablet */}
+                {/* desktop/tablet таблица */}
                 <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full text-sm">
                     <thead className="bg-zinc-50">
@@ -686,7 +624,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">{si+1}</td>
                             <td className="px-2 py-1">
                               <input
-                                className="h-8 w-20 rounded border px-2 text-sm"
+                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.reps || ""}
                                 onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
@@ -697,7 +635,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">
                               <input
                                 id={`kg-${idBase}`}
-                                className="h-8 w-20 rounded border px-2 text-sm"
+                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.weight || ""}
                                 onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
@@ -751,63 +689,51 @@ function ProgramsTab({ data, setData }) {
                 </button>
               )}
 
-              {/* Дублируем мини-действия */}
+              {/* Действия */}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <button className={`rounded-md border ${BORDER_LITE} px-2 py-1`} onClick={() => copyLast(exIdx)}>Как в прошлый раз</button>
-                <button className={`rounded-md border ${BORDER_LITE} px-2 py-1`} onClick={() => markPlanDayComplete()}>Завершить день</button>
+                <button className={`rounded-md border ${BORDER_LITE} px-2 py-1`} onClick={() => {
+                  saveDayHistory(level, ps.week, ps.day, day, ps.progress);
+                  alert("Значения сохранены как «прошлый раз».");
+                }}>Сохранить «прошлый раз»</button>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* липкая панель отдыха */}
-      <RestBar />
-
-      {/* чек-лист целей недели */}
+      {/* Чек-лист целей недели */}
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
     </Section>
   );
 }
 
-/* ===================== RestBar (sticky bottom) ===================== */
-function RestBar() {
-  const [end, setEnd] = React.useState(0);
-  const [, force] = React.useReducer((x) => x + 1, 0);
-  useEffect(() => {
-    if (!end) return;
-    const t = setInterval(() => {
-      if (Date.now() >= end) {
-        clearInterval(t);
-        setEnd(0);
-        vibrate(30);
-      } else {
-        force();
-      }
-    }, 300);
-    return () => clearInterval(t);
-  }, [end]);
-
-  const left = Math.max(0, end - Date.now());
-  const mm = String(Math.floor(left / 1000 / 60)).padStart(2, "0");
-  const ss = String(Math.floor((left / 1000) % 60)).padStart(2, "0");
-
+/* ===================== StickyInfoBar ===================== */
+function StickyInfoBar({ doneSets, totalSets, leftContent, rightTimer }) {
+  const pct = (doneSets/Math.max(1,totalSets))*100;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-screen-sm px-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-      <div className="mb-2 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white/90 px-3 py-2 shadow-lg backdrop-blur">
-        <div className="flex gap-2">
-          {[60, 90, 120].map((s) => (
-            <button key={s} className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={() => setEnd(Date.now() + s * 1000)}>{s}s</button>
-          ))}
+    <div className="sticky top-0 z-30 -mx-4 bg-white/85 px-4 pb-2 pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">{doneSets}/{totalSets} подходов</div>
+          <div className="mt-1 h-1 w-full overflow-hidden rounded bg-zinc-200">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          {leftContent && <div className="mt-1 text-[11px] text-zinc-600">{leftContent}</div>}
         </div>
-        <div className="font-mono text-sm tabular-nums">{left ? `${mm}:${ss}` : "Отдых"}</div>
-        <button className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={() => setEnd(0)}>Стоп</button>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="font-mono text-sm tabular-nums">{rightTimer.active ? `${rightTimer.mm}:${rightTimer.ss}` : "Отдых"}</span>
+          {[60,90,120].map(s => (
+            <button key={s} className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.start(s)}>{s}s</button>
+          ))}
+          <button className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.stop()}>Стоп</button>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ===================== Week Goals (checklist) ===================== */
+/* ===================== Week Goals ===================== */
 function WeekGoals({ ps, setPs, level, weekIdx }) {
   const key = `${level}.${weekIdx}`;
   const goals = ps.goals?.[key] || [
@@ -820,13 +746,13 @@ function WeekGoals({ ps, setPs, level, weekIdx }) {
     setPs({ ...ps, goals: { ...ps.goals, [key]: arr } });
   }
   return (
-    <div className="mt-6 rounded-xl border p-3">
+    <div className="mt-6 rounded-xl border border-zinc-300 bg-white p-3">
       <div className="mb-2 text-sm font-medium">Цели недели</div>
       <div className="space-y-2 text-sm">
         {goals.map((g, i) => (
           <label key={i} className="flex items-center gap-2">
             <input type="checkbox" checked={!!g.done} onChange={(e) => setGoal(i, { ...g, done: e.target.checked })}/>
-            <input className="w-full rounded border px-2 py-1" value={g.text} onChange={(e) => setGoal(i, { ...g, text: e.target.value })}/>
+            <input className="w-full rounded border border-zinc-300 px-2 py-1" value={g.text} onChange={(e) => setGoal(i, { ...g, text: e.target.value })}/>
           </label>
         ))}
       </div>
@@ -836,13 +762,13 @@ function WeekGoals({ ps, setPs, level, weekIdx }) {
 
 /* ===================== Plan / Data ===================== */
 const dayTemplate = [
-  { name: "Тренировка A (низ/ягодицы)", focus: "Низ", duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
-  { name: "Отдых / мобилити",           focus: "Восстановление", duration: "15–25", prep: "Прогулка, растяжка" },
-  { name: "Тренировка B (верх/спина+грудь)", focus: "Верх", duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
-  { name: "Отдых",                       focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
-  { name: "Тренировка C (смешанная/кор)",focus: "Смешанная",      duration: "35–45", prep: "Мобилити + разогрев" },
-  { name: "Зона-2 / прогулка",           focus: "Кардио",         duration: "20–30", prep: "Пульс зона-2" },
-  { name: "Отдых",                       focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
+  { name: "Тренировка A (низ/ягодицы)",     focus: "Низ",            duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
+  { name: "Отдых / мобилити",               focus: "Восстановление", duration: "15–25", prep: "Прогулка, растяжка" },
+  { name: "Тренировка B (верх/спина+грудь)", focus: "Верх",           duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
+  { name: "Отдых",                           focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
+  { name: "Тренировка C (смешанная/кор)",    focus: "Смешанная",      duration: "35–45", prep: "Мобилити + разогрев" },
+  { name: "Зона-2 / прогулка",               focus: "Кардио",         duration: "20–30", prep: "Пульс зона-2" },
+  { name: "Отдых",                           focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
 ];
 
 const makePlan = (len = DEFAULT_DAYS) =>
@@ -854,10 +780,7 @@ const makePlan = (len = DEFAULT_DAYS) =>
 function makeInitialData() {
   return {
     plan: makePlan(DEFAULT_DAYS),
-    sessions: [],
-    measures: [{ date: "", weight: "", waist: "", hips: "", photo: "", sleep: "", energy: "", stress: "" }],
-    nutrition: Array.from({ length: DEFAULT_DAYS }).map(() => ({ date: "", kcalGoal: "", kcalFact: "", protein: "", fat: "", carbs: "", water: "", steps: "" })),
-    wellbeing: Array.from({ length: DEFAULT_DAYS }).map(() => ({ date: "", sleep: "", sleepQ: "", energy: "", doms: "", motivation: "", stress: "", pain: "", notes: "" })),
+    measures: [{ date: iso(new Date()), weight: "", waist: "", hips: "", notes: "", photo: "" }],
     profile: { name: "", mode: "", level: "S", start: iso(new Date()), days: DEFAULT_DAYS },
     _appliedFromQuery: false,
   };
@@ -878,6 +801,67 @@ function applyParamsToData(data) {
   return next;
 }
 
+/* ===================== Measures (Замеры) ===================== */
+function MeasuresTab({ data, setData }) {
+  const rows = data.measures || [];
+  function setRow(i, patch) {
+    const next = [...rows]; next[i] = { ...(next[i] || {}), ...patch }; setData({ ...data, measures: next });
+  }
+  function addRow() { setData({ ...data, measures: [...rows, { date: iso(new Date()), weight: "", waist: "", hips: "", notes: "", photo: "" }] }); }
+  function delRow(i) { const next = rows.slice(); next.splice(i,1); setData({ ...data, measures: next.length ? next : [{ date: iso(new Date()), weight: "", waist: "", hips: "", notes: "", photo: "" }] }); }
+  const base = rows[0] || {};
+
+  const Delta = ({ v, baseV, unit }) => {
+    const a = N(v), b = N(baseV);
+    if (!a || !b) return <span className="text-zinc-400">—</span>;
+    const d = +(a - b).toFixed(1);
+    const cls = d === 0 ? "text-zinc-500" : d > 0 ? "text-rose-600" : "text-emerald-600";
+    return <span className={cls}>{d > 0 ? `+${d}` : d}{unit}</span>;
+  };
+
+  return (
+    <Section title="Замеры и фото" right={<button onClick={addRow} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">+ строка</button>}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-50">
+            <tr>
+              <th className="px-2 py-2 text-left">Дата</th>
+              <th className="px-2 py-2 text-left">Вес, кг</th>
+              <th className="px-2 py-2 text-left">Δ от старта</th>
+              <th className="px-2 py-2 text-left">Талия, см</th>
+              <th className="px-2 py-2 text-left">Δ от старта</th>
+              <th className="px-2 py-2 text-left">Бёдра, см</th>
+              <th className="px-2 py-2 text-left">Δ от старта</th>
+              <th className="px-2 py-2 text-left">Заметка</th>
+              <th className="px-2 py-2 text-left">Фото (URL)</th>
+              <th className="px-2 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b">
+                <td className="px-2 py-1"><input type="date" className="h-8 w-[9.5rem] rounded border border-zinc-300 px-2" value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})}/></td>
+                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})}/></td>
+                <td className="px-2 py-1"><Delta v={r.weight} baseV={base.weight} unit="кг" /></td>
+                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.waist || ""} onChange={(e)=>setRow(i,{waist:e.target.value})}/></td>
+                <td className="px-2 py-1"><Delta v={r.waist} baseV={base.waist} unit="см" /></td>
+                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})}/></td>
+                <td className="px-2 py-1"><Delta v={r.hips} baseV={base.hips} unit="см" /></td>
+                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, цикл, вода..." /></td>
+                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.photo || ""} onChange={(e)=>setRow(i,{photo:e.target.value})} placeholder="https://..." /></td>
+                <td className="px-2 py-1 text-right">
+                  <button onClick={()=>delRow(i)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">Удалить</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-2 text-xs text-zinc-600">Подсказка: колонки «Δ» считают разницу относительно первой строки (старта).</div>
+    </Section>
+  );
+}
+
 /* ===================== Main ===================== */
 export default function R7Tracker() {
   const [data, setData] = usePersistedState(STORAGE_KEY, makeInitialData());
@@ -889,12 +873,12 @@ export default function R7Tracker() {
   useEffect(() => { setData((prev) => applyParamsToData(prev)); }, []);
   useEffect(() => {
     if (!data.profile?.mode || !data.profile?.level || !data.profile?.start) setShowOB(true);
-  }, []); // один раз
+  }, []); // once
 
   const completedDays = useMemo(() => data.plan.filter((d) => d.status).length, [data.plan]);
   const adherence = useMemo(() => Math.round((completedDays / data.plan.length) * 100) || 0, [completedDays, data.plan.length]);
 
-  // mini streak 7 дней
+  // mini streak 7 дней (первые 7 в плане)
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
     <div className="flex items-center gap-1">
@@ -940,7 +924,7 @@ export default function R7Tracker() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Pill className="bg-white/70">Приверженность: <b className="ml-1">{adherence}%</b></Pill>
-          <div className="rounded-full border px-2 py-1 text-xs text-zinc-600 bg-white/70">Streak: {streakRow}</div>
+          <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
         {(inTG || canInstall) && (
@@ -950,14 +934,12 @@ export default function R7Tracker() {
           </div>
         )}
 
+        {/* Навигация: только 3 раздела (по просьбе) */}
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
             ["programs", "Программы"],
             ["plan", "План"],
-            ["sessions", "Сессии"],
             ["measures", "Замеры"],
-            ["nutrition", "Питание"],
-            ["wellbeing", "Самочувствие"],
           ].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)} className={`rounded-full px-4 py-2 text-sm ${tab === k ? "bg-black text-white" : `border ${BORDER_LITE}`}`}>{label}</button>
           ))}
@@ -970,7 +952,7 @@ export default function R7Tracker() {
         <Section title="План на 30 дней" right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {data.plan.map((d, i) => (
-              <div key={i} className="flex items-start justify-between gap-3 rounded-xl border p-3">
+              <div key={i} className="flex items-start justify-between gap-3 rounded-xl border border-zinc-300 bg-white p-3">
                 <div className="min-w-0">
                   <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
                   <div className="truncate font-medium">{d.title}</div>
@@ -980,7 +962,7 @@ export default function R7Tracker() {
                     <Pill>{d.prep}</Pill>
                   </div>
                   <textarea
-                    className="mt-2 w-full rounded-md border p-2 text-sm"
+                    className="mt-2 w-full rounded-md border border-zinc-300 p-2 text-sm"
                     rows={2}
                     placeholder="Заметка"
                     value={d.note}
@@ -994,7 +976,7 @@ export default function R7Tracker() {
                 <div className="flex w-40 flex-col items-end gap-2">
                   <input
                     type="date"
-                    className="w-full rounded-md border px-2 py-1 text-sm"
+                    className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
                     value={d.date}
                     onChange={(e) => {
                       const next = [...data.plan];
@@ -1019,40 +1001,26 @@ export default function R7Tracker() {
         </Section>
       )}
 
-      {tab === "sessions" && (
-        <Section title="Тренировочные сессии" right={null}>
-          <div className="text-sm text-zinc-600">Собственные записи разовых тренировок (если не по программе).</div>
-          {/* ...оставил как было у тебя; при желании позже улучшим */}
-        </Section>
-      )}
-
-      {tab === "measures" && (
-        <Section title="Замеры и фото">
-          {/* ...оставил твою таблицу замеров (без изменений функционала) */}
-          <div className="text-sm text-zinc-600">Добавляйте строки на старт/середину/финал.</div>
-        </Section>
-      )}
-
-      {tab === "nutrition" && (
-        <Section title="Питание (30 дней)">
-          {/* ...оставил как было, можно будет добавить сводку БЖУ позже */}
-        </Section>
-      )}
-
-      {tab === "wellbeing" && (
-        <Section title="Самочувствие (ежедневно)">
-          {/* ...оставил как было */}
-        </Section>
-      )}
+      {tab === "measures" && <MeasuresTab data={data} setData={setData} />}
 
       <footer className="mt-8 text-center text-sm text-zinc-500">
         R7 • Данные хранятся локально (localStorage). Для переноса используйте Экспорт/Импорт.
       </footer>
+
+      {showOB && (
+        <Onboarding
+          initial={data.profile}
+          onClose={(payload) => {
+            setShowOB(false);
+            if (payload) setData({ ...data, profile: { ...data.profile, ...payload } });
+          }}
+        />
+      )}
     </div>
   );
 }
 
-/* ===================== Onboarding (минимально, как было) ===================== */
+/* ===================== Onboarding ===================== */
 function Onboarding({ initial, onClose }) {
   const [name, setName]   = useState(initial?.name || "");
   const [mode, setMode]   = useState(initial?.mode || "home");
@@ -1077,26 +1045,26 @@ function Onboarding({ initial, onClose }) {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="text-sm">Имя
-            <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="Мария" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2" placeholder="Мария" />
           </label>
           <label className="text-sm">Дата старта
-            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" />
+            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2" />
           </label>
           <label className="text-sm">Формат
-            <select value={mode} onChange={(e) => setMode(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+            <select value={mode} onChange={(e) => setMode(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2">
               <option value="home">Дом</option>
               <option value="gym">Зал</option>
             </select>
           </label>
           <label className="text-sm">Уровень
-            <select value={level} onChange={(e) => setLevel(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+            <select value={level} onChange={(e) => setLevel(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2">
               <option value="S">Start</option>
               <option value="M">Medium</option>
               <option value="P">Pro</option>
             </select>
           </label>
           <label className="text-sm">Длительность
-            <select value={String(days)} onChange={(e) => setDays(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2">
+            <select value={String(days)} onChange={(e) => setDays(e.target.value)} className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2">
               <option value="14">14 дней</option>
               <option value="30">30 дней</option>
             </select>
