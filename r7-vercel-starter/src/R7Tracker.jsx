@@ -414,6 +414,38 @@ const InputMini = React.forwardRef(function InputMini(
     />
   );
 });
+// --- RIR селектор (цветной) ---
+const RIR_OPTIONS = [
+  { value: "",   label: "Выбрать" },
+  { value: "4",  label: "4" },
+  { value: "3",  label: "3" },
+  { value: "2",  label: "2" },
+  { value: "1",  label: "1" },
+  { value: "0",  label: "Отказ" },
+];
+
+function rirColor(v) {
+  if (v === "0") return "border-rose-300 bg-rose-50";
+  if (v === "1" || v === "2") return "border-amber-300 bg-amber-50";
+  return "border-zinc-300"; // 3–4 или пусто
+}
+
+const RirSelect = React.forwardRef(function RirSelect({ value, onChange, onEnter }, ref) {
+  return (
+    <div className={["h-8 rounded-md border", rirColor(value || "")].join(" ")}>
+      <select
+        ref={ref}
+        className="h-full w-full bg-transparent pl-2 pr-6 text-xs"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") onEnter?.(); }}
+      >
+        <option value=""></option>
+        {RIR_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+});
 
 
 function RIRSelect({ value, setValue }) {
