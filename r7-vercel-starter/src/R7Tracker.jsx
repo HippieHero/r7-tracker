@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== Helpers / Constants ===================== */
@@ -291,6 +292,23 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
   );
 }
 
+/* --- Non-sticky stat cards (Объём / Средн. RIR / Время) --- */
+function StatsRow({ volume, avgRir, time }) {
+  const Card = ({ label, value }) => (
+    <div className="flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-center shadow-sm">
+      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="mt-0.5 text-lg font-semibold">{value}</div>
+    </div>
+  );
+  return (
+    <div className="mt-2 flex items-stretch gap-3">
+      <Card label="Объём"     value={`${volume} кг`} />
+      <Card label="Средн. RIR" value={avgRir} />
+      <Card label="Время"      value={time} />
+    </div>
+  );
+}
+
 function ProgramsTab({ data, setData }) {
   const [ps, setPs] = useProgramsState();
   const level = ps.level;
@@ -413,7 +431,7 @@ function ProgramsTab({ data, setData }) {
     }).catch(() => { prompt("Скопируйте ссылку вручную:", href); });
   }
 
-  // микростаты дня
+  // микростаты дня (для карточек)
   const dayStats = useMemo(() => {
     if (!day) return { volume: 0, avgRir: "-", time: "-" };
     let vol = 0; let rirSum = 0, rirNum = 0;
@@ -443,9 +461,8 @@ function ProgramsTab({ data, setData }) {
             dayIdx={ps.day} setDay={setDay}
           />
         </div>
-        {/* Тонкая липкая полоска — будет видна при прокрутке, когда появится контент */}
-        <StickyInfoBar doneSets={doneSets} totalSets={totalSets} leftContent={null}
-          rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }} />
+        {/* Тонкая липкая полоска — будет видна при прокрутке */}
+        <StickyInfoBar doneSets={doneSets} totalSets={totalSets} />
         <div className="mt-3 text-sm text-zinc-600">Выберите Start → Неделя 1.</div>
       </Section>
     );
@@ -454,7 +471,7 @@ function ProgramsTab({ data, setData }) {
   return (
     <Section title="Программы тренировок" right={null}>
       {/* Неклейкий блок с контролами — остаётся на месте */}
-      <div className="mb-3">
+      <div className="mb-2">
         <Controls
           level={level} setLevel={setLevel}
           prog={prog} weekIdx={ps.week} setWeek={setWeek}
@@ -462,16 +479,18 @@ function ProgramsTab({ data, setData }) {
         />
       </div>
 
-      {/* Липкая информационная панель: слева прогресс/полоса, справа таймер */}
+      {/* Липкая панель: только прогресс + таймер */}
       <StickyInfoBar
         doneSets={doneSets}
         totalSets={totalSets}
-        leftContent={<div className="text-xs text-zinc-600">Объём: <b>{dayStats.volume}</b> кг · Средн. RIR: <b>{dayStats.avgRir}</b></div>}
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
       />
 
+      {/* НЕлипкие карточки статистики, как раньше */}
+      <StatsRow volume={dayStats.volume} avgRir={dayStats.avgRir} time={dayStats.time} />
+
       {/* Списки упражнений */}
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 space-y-3">
         {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
           const progress = ps.progress[k]?.sets || [];
@@ -483,10 +502,11 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <div key={exIdx} id={`ex-${exIdx}`} className="rounded-xl border border-zinc-300 bg-white p-4">
+            <div key={exIdx} id={`ex-${exIdx}`} className="rounded-xl border border-zinc-300 bg-white p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-xs text-zinc-500">{ex.muscle}</div>
+
                   <div
                     className="flex items-center gap-2"
                     onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
@@ -512,13 +532,16 @@ function ProgramsTab({ data, setData }) {
                     </div>
                   )}
 
-                  {/* Компактная строка параметров упражнения */}
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
-                    <Pill>Рабочих: {ex.workSets}</Pill>
-                    <Pill>Повт.: {ex.reps}</Pill>
-                    <Pill>Отдых: {ex.rest}</Pill>
-                    <Pill>Инт-сть: {ex.intensity}</Pill>
-                    {ex.warmup && <Pill>+ Разминка</Pill>}
+                  {/* Суперкомпактная строка параметров: 3×12–15 · 60–120с · 1–2RIR */}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[11px] text-zinc-600">
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5">Рабочих: {ex.workSets}</span>
+                    <span>·</span>
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5">Повт.: {ex.reps}</span>
+                    <span>·</span>
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5">Отдых: {ex.rest}</span>
+                    <span>·</span>
+                    <span className="rounded bg-zinc-100 px-1.5 py-0.5">{ex.intensity}</span>
+                    {ex.warmup && <span className="rounded bg-amber-100 px-1.5 py-0.5">+ Разминка</span>}
                   </div>
                 </div>
 
@@ -529,20 +552,19 @@ function ProgramsTab({ data, setData }) {
                 </div>
               </div>
 
-              {ex.equipment?.length > 0 && (
-                <div className="mt-2 text-xs text-zinc-600">Оборудование: {ex.equipment.join(", ")}</div>
-              )}
-
               {/* Примечания — свёрнуты по умолчанию */}
               {ex.notes && (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-sm text-zinc-700">Примечания</summary>
-                  <div className="mt-2 text-sm text-zinc-600">{ex.notes}</div>
+                  <div className="mt-2 text-sm text-zinc-600">
+                    {ex.equipment?.length > 0 && <div className="mb-1 text-xs">Оборудование: {ex.equipment.join(", ")}</div>}
+                    {ex.notes}
+                  </div>
                 </details>
               )}
 
               {/* Сеты: мобильные карточки */}
-              <div className="mt-3">
+              <div className="mt-2">
                 <div className="space-y-2 sm:hidden">
                   {Array.from({ length: ex.workSets }).map((_, si) => {
                     const row = progress[si] || {};
@@ -709,7 +731,7 @@ function ProgramsTab({ data, setData }) {
 }
 
 /* ===================== StickyInfoBar ===================== */
-function StickyInfoBar({ doneSets, totalSets, leftContent, rightTimer }) {
+function StickyInfoBar({ doneSets, totalSets, rightTimer }) {
   const pct = (doneSets/Math.max(1,totalSets))*100;
   return (
     <div className="sticky top-0 z-30 -mx-4 bg-white/85 px-4 pb-2 pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -719,14 +741,17 @@ function StickyInfoBar({ doneSets, totalSets, leftContent, rightTimer }) {
           <div className="mt-1 h-1 w-full overflow-hidden rounded bg-zinc-200">
             <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
           </div>
-          {leftContent && <div className="mt-1 text-[11px] text-zinc-600">{leftContent}</div>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="font-mono text-sm tabular-nums">{rightTimer.active ? `${rightTimer.mm}:${rightTimer.ss}` : "Отдых"}</span>
-          {[60,90,120].map(s => (
-            <button key={s} className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.start(s)}>{s}s</button>
-          ))}
-          <button className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.stop()}>Стоп</button>
+          {rightTimer && (
+            <>
+              <span className="font-mono text-sm tabular-nums">{rightTimer.active ? `${rightTimer.mm}:${rightTimer.ss}` : "Отдых"}</span>
+              {[60,90,120].map(s => (
+                <button key={s} className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.start(s)}>{s}s</button>
+              ))}
+              <button className="rounded-md border border-zinc-300 px-2 py-1 text-xs" onClick={()=>rightTimer.stop()}>Стоп</button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -895,7 +920,7 @@ export default function R7Tracker() {
     <div className="mx-auto max-w-6xl p-4 text-zinc-800">
       <header className="mb-6 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">R7 — 30-дневный трекер (дом/зал)</h1>
+          <h1 className="text-2xl font-bold">R7 — трекер</h1>
           <ActionsMenu
             onSettings={() => setShowOB(true)}
             onCopy={copyLink}
@@ -914,6 +939,7 @@ export default function R7Tracker() {
           />
         </div>
 
+        {/* Структурированные «отслеживаемые» данные — компактные бейджи */}
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {data.profile?.name && <Pill className="bg-white/70">👤 {data.profile.name}</Pill>}
           {data.profile?.mode && <Pill className="bg-white/70">🏠/🏋️‍♀️ {data.profile.mode === "home" ? "Дом" : "Зал"}</Pill>}
@@ -934,7 +960,7 @@ export default function R7Tracker() {
           </div>
         )}
 
-        {/* Навигация: только 3 раздела (по просьбе) */}
+        {/* Навигация: 3 раздела */}
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
             ["programs", "Программы"],
