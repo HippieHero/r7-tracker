@@ -827,6 +827,7 @@ function applyParamsToData(data) {
 }
 
 /* ===================== Measures (Замеры) ===================== */
+
 function MeasuresTab({ data, setData }) {
   const rows = data.measures || [];
   function setRow(i, patch) {
@@ -838,55 +839,65 @@ function MeasuresTab({ data, setData }) {
 
   const Delta = ({ v, baseV, unit }) => {
     const a = N(v), b = N(baseV);
-    if (!a || !b) return <span className="text-zinc-400">—</span>;
+    if (!a || !b) return <span className="text-zinc-400">— {unit}</span>;
     const d = +(a - b).toFixed(1);
     const cls = d === 0 ? "text-zinc-500" : d > 0 ? "text-rose-600" : "text-emerald-600";
-    return <span className={cls}>{d > 0 ? `+${d}` : d}{unit}</span>;
+    return <span className={cls}>{d > 0 ? `+${d}` : d} {unit}</span>;
   };
 
   return (
     <Section title="Замеры и фото" right={<button onClick={addRow} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">+ строка</button>}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50">
-            <tr>
-              <th className="px-2 py-2 text-left">Дата</th>
-              <th className="px-2 py-2 text-left">Вес, кг</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Талия, см</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Бёдра, см</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Заметка</th>
-              <th className="px-2 py-2 text-left">Фото (URL)</th>
-              <th className="px-2 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b">
-                <td className="px-2 py-1"><input type="date" className="h-8 w-[9.5rem] rounded border border-zinc-300 px-2" value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})}/></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.weight} baseV={base.weight} unit="кг" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.waist || ""} onChange={(e)=>setRow(i,{waist:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.waist} baseV={base.waist} unit="см" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.hips} baseV={base.hips} unit="см" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, цикл, вода..." /></td>
-                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.photo || ""} onChange={(e)=>setRow(i,{photo:e.target.value})} placeholder="https://..." /></td>
-                <td className="px-2 py-1 text-right">
-                  <button onClick={()=>delRow(i)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">Удалить</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <p className="mb-3 text-sm text-zinc-600">Добавляйте 3 ключевые точки: старт → середина → финиш. Разница (Δ) считается относительно самой первой записи.</p>
+      <div className="space-y-3">
+        {rows.map((r, i) => (
+          <div key={i} className="rounded-xl border border-zinc-300 bg-white p-3 shadow-sm">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label className="text-sm">Дата
+                <input type="date" className="mt-1 rounded-md border border-zinc-300 px-3 py-2" value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})} />
+              </label>
+              <button onClick={()=>delRow(i)} className="rounded-md border border-zinc-300 px-3 py-2 text-xs">Удалить</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <label className="text-sm">
+                <span className="block text-xs text-zinc-500">Вес, кг · <Delta v={r.weight} baseV={base.weight} unit="кг" /></span>
+                <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-right" inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})} placeholder="например, 65.2" />
+              </label>
+
+              <label className="text-sm">
+                <span className="block text-xs text-zinc-500">Талия, см · <Delta v={r.waist} baseV={base.waist} unit="см" /></span>
+                <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-right" inputMode="decimal" value={r.waist || ""} onChange={(e)=>setRow(i,{waist:e.target.value})} placeholder="например, 70.0" />
+              </label>
+
+              <label className="text-sm">
+                <span className="block text-xs text-zinc-500">Бёдра, см · <Delta v={r.hips} baseV={base.hips} unit="см" /></span>
+                <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-right" inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})} placeholder="например, 96.0" />
+              </label>
+            </div>
+
+            <label className="mt-3 block text-sm">
+              <span className="block text-xs text-zinc-500">Заметка</span>
+              <textarea className="mt-1 w-full rounded-md border border-zinc-300 p-2" rows={2} value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, фаза цикла, вода..." />
+            </label>
+
+            <label className="mt-3 block text-sm">
+              <span className="block text-xs text-zinc-500">Фото (URL)</span>
+              <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2" value={r.photo || ""} onChange={(e)=>setRow(i,{photo:e.target.value})} placeholder="https://..." />
+            </label>
+          </div>
+        ))}
       </div>
-      <div className="mt-2 text-xs text-zinc-600">Подсказка: колонки «Δ» считают разницу относительно первой строки (старта).</div>
+
+      {/* Итоговые дельты по последней записи */}
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ талия: <Delta v={rows[rows.length-1]?.waist} baseV={base.waist} unit="см" /></div>
+        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ бёдра: <Delta v={rows[rows.length-1]?.hips} baseV={base.hips} unit="см" /></div>
+        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">Δ вес: <Delta v={rows[rows.length-1]?.weight} baseV={base.weight} unit="кг" /></div>
+      </div>
+      <div className="mt-2 text-xs text-zinc-600">Данные сохраняются на устройстве (localStorage). При необходимости используйте экспорт/импорт.</div>
     </Section>
   );
 }
-
 /* ===================== Main ===================== */
 export default function R7Tracker() {
   const [data, setData] = usePersistedState(STORAGE_KEY, makeInitialData());
