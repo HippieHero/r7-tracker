@@ -460,9 +460,12 @@ function getVideoHref(ex) {
         }
       });
     });
-    const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
-    return { volume: Math.round(vol), avgRir: avg, time: `${mm}:${ss}` };
-  }, [day, ps.progress, mm, ss, level, ps.week, ps.day]);
+  const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
+// избегаем backtick: склеиваем строку классически
+const timeStr = String(mm).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+return { volume: Math.round(vol), avgRir: avg, time: timeStr };
+}, [day, ps.progress, mm, ss, level, ps.week, ps.day]);
+
 
   if (!day) {
     return (
