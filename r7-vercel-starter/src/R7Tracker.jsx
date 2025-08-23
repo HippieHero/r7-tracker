@@ -1054,13 +1054,13 @@ const deltaWeight = deltaText(lastM.weight, baseM.weight, "кг");
         {/* Прогресс по замерам (видно всегда) */}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
           <Pill className="bg-white/70">
-            Δ талия: <b className={`ml-1 ${deltaClass(lastM.waist, baseM.waist)}`}>{deltaText(lastM.waist, baseM.waist, "см")}</b>
+            Δ талия: <b className={`ml-1 ${deltaClass(lastM.waist, baseM.waist)}`}>{deltaWaist}</b>
           </Pill>
           <Pill className="bg-white/70">
-            Δ бёдра: <b className={`ml-1 ${deltaClass(lastM.hips, baseM.hips)}`}>{deltaText(lastM.hips, baseM.hips, "см")}</b>
+            Δ бёдра: <b className={`ml-1 ${deltaClass(lastM.hips, baseM.hips)}`}>{deltaHips}</b>
           </Pill>
           <Pill className="bg-white/70">
-            Δ вес: <b className={`ml-1 ${deltaClass(lastM.weight, baseM.weight)}`}>{deltaText(lastM.weight, baseM.weight, "кг")}</b>
+            Δ вес: <b className={`ml-1 ${deltaClass(lastM.weight, baseM.weight)}`}>{deltaWeight}</b>
           </Pill>
         </div>
 
