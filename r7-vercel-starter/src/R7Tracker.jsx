@@ -988,14 +988,25 @@ export default function R7Tracker() {
   const copyLink = async () => { try { await navigator.clipboard.writeText(personalLink); alert("Ссылка скопирована"); } catch { prompt("Скопируйте ссылку:", personalLink); } };
 
   // Дельты для шапки (последняя запись минус первая)
-  const baseM = data.measures?.[0] || {};
-  the lastM = (data.measures?.length ? data.measures[data.measures.length - 1] : {}) || {};
-  const deltaText = (curr, base, unit) => {
-    const a = N(curr), b = N(base);
-    if (!a || !b) return "—";
-    const d = +(a - b).toFixed(1);
-    return (d > 0 ? `+${d}` : `${d}`) + " " + unit;
-  };
+const measuresArr = Array.isArray(data?.measures) ? data.measures : [];
+
+const baseM = measuresArr.length > 0 ? (measuresArr[0] || {}) : {};
+const lastM = measuresArr.length > 0 ? (measuresArr[measuresArr.length - 1] || {}) : {};
+
+const deltaText = (curr, base, unit) => {
+  const a = N(curr);
+  const b = N(base);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return `— ${unit}`;
+  const d = a - b;
+  if (d === 0) return `0 ${unit}`;
+  const sign = d > 0 ? "+" : "";
+  return `${sign}${d.toFixed(1)} ${unit}`;
+};
+
+const deltaWaist  = deltaText(lastM.waist,  baseM.waist,  "см");
+const deltaHips   = deltaText(lastM.hips,   baseM.hips,   "см");
+const deltaWeight = deltaText(lastM.weight, baseM.weight, "кг");
+
   const deltaClass = (curr, base) => {
     const a = N(curr), b = N(base);
     if (!a || !b) return "text-zinc-600";
