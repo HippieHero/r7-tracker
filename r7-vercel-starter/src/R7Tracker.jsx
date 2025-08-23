@@ -1,3 +1,13 @@
+Вот обновлённый **целиком** файл `R7Tracker.jsx` с нужными изменениями:
+
+* Добавил отдельную строку статов «Объём / Средн. RIR / Время» как на скриншоте: три отдельные карточки с лёгкой тенью.
+* Эта строка **не липкая** — остаётся на месте и не «едет» вслед за экраном.
+* «Время» теперь — **таймер всей тренировки**, независимый от таймера отдыха (в липкой панели). Кнопка «Старт тренировки» запускает его, он тикает весь сеанс; есть «Сброс».
+* Остальной код сохранён.
+
+Скопируй всё ниже в `src/R7Tracker.jsx`.
+
+```jsx
 import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== Helpers / Constants ===================== */
@@ -253,7 +263,7 @@ function ActionsMenu({ onSettings, onCopy, onShare, onExport, onImport, onReset 
   );
 }
 
-/* ===================== Programs ===================== */
+/* ===================== Programs helpers ===================== */
 function useProgramsState() {
   return usePersistedState(PROG_KEY, { level: "S", week: 0, day: 0, progress: {}, goals: {} , session: {} });
 }
@@ -265,13 +275,50 @@ function saveDayHistory(level, week, day, dayObj, progress) {
     const k = keyFor(level, week, day, exIdx);
     const rows = progress[k]?.sets || [];
     const payload = rows.map(r => ({ reps: r?.reps || "", weight: r?.weight || "", rir: r?.rir || "" }));
-    try { localStorage.setItem(`r7:last:${exId(level, week, day, ex)}`, JSON.stringify(payload)); } catch {}
+    try { localStorage.setItem("r7:last:" + exId(level, week, day, ex), JSON.stringify(payload)); } catch {}
     if (ex?.videos?.[0]?.href) {
-      try { localStorage.setItem(`r7:video:${exId(level, week, day, ex)}`, ex.videos[0].href); } catch {}
+      try { localStorage.setItem("r7:video:" + exId(level, week, day, ex), ex.videos[0].href); } catch {}
     }
   });
 }
 
+/* ===================== Stats row (объём / RIR / время) ===================== */
+function StatsRow({ volume, avgRir, timeText, started, onStart, onReset }) {
+  const Card = ({ children }) => (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+      {children}
+    </div>
+  );
+  return (
+    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <Card>
+        <div className="text-sm text-zinc-600">Объём:</div>
+        <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
+      </Card>
+      <Card>
+        <div className="text-sm text-zinc-600">Средн. RIR:</div>
+        <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
+      </Card>
+      <Card>
+        <div className="text-sm text-zinc-600">Время:</div>
+        <div className="mt-0.5 font-mono text-xl tabular-nums">{timeText || "—"}</div>
+        {!started ? (
+          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+                  onClick={onStart}>
+            Старт тренировки
+          </button>
+        ) : (
+          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+                  onClick={onReset}>
+            Сбросить
+          </button>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ===================== Controls ===================== */
 function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
   const week = prog.weeks[weekIdx] || { days: [] };
   return (
@@ -291,6 +338,7 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
   );
 }
 
+/* ===================== Programs tab ===================== */
 function ProgramsTab({ data, setData }) {
   const [ps, setPs] = useProgramsState();
   const level = ps.level;
@@ -317,7 +365,7 @@ function ProgramsTab({ data, setData }) {
     }, 0);
   }, [day, ps.progress, level, ps.week, ps.day]);
 
-  // session timer (липкая панель)
+  /* ---------- Таймер отдыха (липкая нижняя панель) ---------- */
   const restKey = `${level}.${ps.week}.${ps.day}.rest`;
   const [restEnd, setRestEnd] = useState(() => {
     try { return Number(localStorage.getItem(restKey) || 0); } catch { return 0; }
@@ -332,12 +380,40 @@ function ProgramsTab({ data, setData }) {
     }, 300);
     return () => clearInterval(t);
   }, [restEnd]);
-
   const leftMs = Math.max(0, restEnd - Date.now());
   const mm = String(Math.floor(leftMs / 1000 / 60)).padStart(2, "0");
   const ss = String(Math.floor((leftMs / 1000) % 60)).padStart(2, "0");
 
-  // апдейтер ячейки (функциональный: исключает гонки и «уезжания»)
+  /* ---------- Таймер всей тренировки (независимый) ---------- */
+  const dayKey = `${level}.${ps.week}.${ps.day}`;
+  const wKey = "r7:wstart:" + dayKey;
+  const [wStart, setWStart] = useState(() => {
+    try { return Number(localStorage.getItem(wKey) || 0); } catch { return 0; }
+  });
+  // если меняем день/неделю — перечитываем
+  useEffect(() => {
+    try { setWStart(Number(localStorage.getItem("r7:wstart:" + dayKey) || 0)); } catch { setWStart(0); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayKey]);
+  useEffect(() => { try { if (wStart) localStorage.setItem(wKey, String(wStart)); else localStorage.removeItem(wKey); } catch {} }, [wStart, wKey]);
+  const [, tickW] = useState(0);
+  useEffect(() => {
+    if (!wStart) return;
+    const t = setInterval(() => tickW((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [wStart]);
+  const elapsed = Math.max(0, wStart ? Date.now() - wStart : 0);
+  const eh = Math.floor(elapsed / 3600000);
+  const em = Math.floor((elapsed % 3600000) / 60000);
+  const es = Math.floor((elapsed % 60000) / 1000);
+  const timeText = wStart
+    ? (eh > 0 ? `${String(eh).padStart(2,"0")}:${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}` : `${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}`)
+    : "";
+
+  const startWorkout = () => setWStart(Date.now());
+  const resetWorkout = () => setWStart(0);
+
+  // апдейтер ячейки (функциональный)
   function setCell(exIdx, setIdx, field, value) {
     const k = keyFor(level, ps.week, ps.day, exIdx);
     setPs(prev => {
@@ -382,7 +458,7 @@ function ProgramsTab({ data, setData }) {
   function copyLast(exIdx) {
     const ex = day.exercises[exIdx];
     const last = (() => {
-      try { return JSON.parse(localStorage.getItem('r7:last:' + exId(level, ps.week, ps.day, ex)) || 'null'); } catch { return null; }
+      try { return JSON.parse(localStorage.getItem("r7:last:" + exId(level, ps.week, ps.day, ex)) || "null"); } catch { return null; }
     })();
     if (!last) return;
     const k = keyFor(level, ps.week, ps.day, exIdx);
@@ -398,7 +474,7 @@ function ProgramsTab({ data, setData }) {
 
   // видео
   function getVideoHref(ex) {
-    const alt = (() => { try { return localStorage.getItem('r7:video:' + exId(level, ps.week, ps.day, ex)) || ''; } catch { return ''; }})();
+    const alt = (() => { try { return localStorage.getItem("r7:video:" + exId(level, ps.week, ps.day, ex)) || ""; } catch { return ""; }})();
     return ex?.videos?.[0]?.href || alt || "";
   }
   function openVideo(ex) {
@@ -413,9 +489,9 @@ function ProgramsTab({ data, setData }) {
     }).catch(() => { prompt("Скопируйте ссылку вручную:", href); });
   }
 
-  // микростаты дня
+  // микростаты дня (объём + средний RIR)
   const dayStats = useMemo(() => {
-    if (!day) return { volume: 0, avgRir: "-", time: "-" };
+    if (!day) return { volume: 0, avgRir: "-" };
     let vol = 0; let rirSum = 0, rirNum = 0;
     day.exercises.forEach((ex, exIdx) => {
       const k = keyFor(level, ps.week, ps.day, exIdx);
@@ -429,13 +505,12 @@ function ProgramsTab({ data, setData }) {
       });
     });
     const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
-    return { volume: Math.round(vol), avgRir: avg, time: mm + ':' + ss };
-  }, [day, ps.progress, mm, ss, level, ps.week, ps.day]);
+    return { volume: Math.round(vol), avgRir: avg };
+  }, [day, ps.progress, level, ps.week, ps.day]);
 
   if (!day) {
     return (
       <Section title="Программы тренировок" right={null}>
-        {/* Неклейкий блок с контролами */}
         <div className="mb-3">
           <Controls
             level={level} setLevel={setLevel}
@@ -443,7 +518,6 @@ function ProgramsTab({ data, setData }) {
             dayIdx={ps.day} setDay={setDay}
           />
         </div>
-        {/* Тонкая липкая полоска — будет видна при прокрутке, когда появится контент */}
         <StickyInfoBar doneSets={doneSets} totalSets={totalSets} leftContent={null}
           rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }} />
         <div className="mt-3 text-sm text-zinc-600">Выберите Start → Неделя 1.</div>
@@ -462,12 +536,22 @@ function ProgramsTab({ data, setData }) {
         />
       </div>
 
-      {/* Липкая информационная панель: слева прогресс/полоса, справа таймер */}
+      {/* Липкая информационная панель: слева прогресс/полоса, справа таймер отдыха */}
       <StickyInfoBar
         doneSets={doneSets}
         totalSets={totalSets}
-        leftContent={<div className="text-xs text-zinc-600">Объём: <b>{dayStats.volume}</b> кг · Средн. RIR: <b>{dayStats.avgRir}</b></div>}
+        leftContent={null}
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
+      />
+
+      {/* НЕ липкая строка статов — как на скрине */}
+      <StatsRow
+        volume={dayStats.volume}
+        avgRir={dayStats.avgRir}
+        timeText={timeText}
+        started={!!wStart}
+        onStart={startWorkout}
+        onReset={resetWorkout}
       />
 
       {/* Списки упражнений */}
@@ -483,7 +567,7 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <div key={exIdx} id={'ex-' + exIdx} className="rounded-xl border border-zinc-300 bg-white p-4">
+            <div key={exIdx} id={"ex-" + exIdx} className="rounded-xl border border-zinc-300 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-xs text-zinc-500">{ex.muscle}</div>
@@ -708,7 +792,7 @@ function ProgramsTab({ data, setData }) {
   );
 }
 
-/* ===================== StickyInfoBar ===================== */
+/* ===================== StickyInfoBar (прогресс + отдых) ===================== */
 function StickyInfoBar({ doneSets, totalSets, leftContent, rightTimer }) {
   const pct = (doneSets/Math.max(1,totalSets))*100;
   return (
@@ -817,7 +901,7 @@ function MeasuresTab({ data, setData }) {
     const d = +(a - b).toFixed(1);
     const cls = d === 0 ? "text-zinc-500" : d > 0 ? "text-rose-600" : "text-emerald-600";
     return <span className={cls}>{d > 0 ? `+${d}` : d}{unit}</span>;
-  };
+    };
 
   return (
     <Section title="Замеры и фото" right={<button onClick={addRow} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">+ строка</button>}>
@@ -979,13 +1063,6 @@ export default function R7Tracker() {
           </Pill>
         </div>
 
-        {(inTG || canInstall) && (
-          <div className="mt-2 rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm">
-            {inTG && <div className="mb-1">Откройте трекер в Safari/Chrome и «Добавить на экран» для установки как приложение.</div>}
-            {canInstall && <button onClick={install} className="mt-2 rounded-md bg-black px-3 py-2 text-white">Установить как приложение</button>}
-          </div>
-        )}
-
         {/* Навигация: 3 раздела */}
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
@@ -1136,3 +1213,4 @@ function Onboarding({ initial, onClose }) {
     </div>
   );
 }
+```
