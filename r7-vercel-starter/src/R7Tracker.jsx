@@ -548,7 +548,7 @@ function ProgramsTab({ data, setData }) {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-2 rounded-xl border border-zinc-200 p-2">
+                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
@@ -821,43 +821,65 @@ function MeasuresTab({ data, setData }) {
 
   return (
     <Section title="Замеры и фото" right={<button onClick={addRow} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">+ строка</button>}>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50">
-            <tr>
-              <th className="px-2 py-2 text-left">Дата</th>
-              <th className="px-2 py-2 text-left">Вес, кг</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Талия, см</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Бёдра, см</th>
-              <th className="px-2 py-2 text-left">Δ от старта</th>
-              <th className="px-2 py-2 text-left">Заметка</th>
-              <th className="px-2 py-2 text-left">Фото (URL)</th>
-              <th className="px-2 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b">
-                <td className="px-2 py-1"><input type="date" className="h-8 w-[9.5rem] rounded border border-zinc-300 px-2" value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})}/></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.weight} baseV={base.weight} unit="кг" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.waist || ""} onChange={(e)=>setRow(i,{waist:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.waist} baseV={base.waist} unit="см" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-20 rounded border border-zinc-300 px-2 text-right" inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})}/></td>
-                <td className="px-2 py-1"><Delta v={r.hips} baseV={base.hips} unit="см" /></td>
-                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.notes || ""} onChange={(e)=>setRow(i,{notes:e.target.value})} placeholder="Самочувствие, цикл, вода..." /></td>
-                <td className="px-2 py-1"><input className="h-8 w-48 rounded border border-zinc-300 px-2" value={r.photo || ""} onChange={(e)=>setRow(i,{photo:e.target.value})} placeholder="https://..." /></td>
-                <td className="px-2 py-1 text-right">
-                  <button onClick={()=>delRow(i)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">Удалить</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <p className="mb-3 text-sm text-zinc-600">
+        Добавляйте 3 ключевые точки: старт → середина → финиш. Разница (Δ) считается относительно самой первой записи.
+      </p>
+
+      <div className="space-y-4">
+        {rows.map((r, i) => (
+          <div key={i} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <label className="text-sm font-medium">
+                Дата
+                <input type="date" className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  value={r.date || ""} onChange={(e)=>setRow(i,{date:e.target.value})}/>
+              </label>
+              <button onClick={()=>delRow(i)} className="h-9 rounded-md border border-zinc-300 px-3 text-sm">Удалить</button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <label className="text-sm font-medium">
+                Вес, кг <span className="ml-1 text-xs text-zinc-500">· <Delta v={r.weight} baseV={base.weight} unit=" кг" /></span>
+                <input className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  inputMode="decimal" value={r.weight || ""} onChange={(e)=>setRow(i,{weight:e.target.value})}/>
+              </label>
+
+              <label className="text-sm font-medium">
+                Талия, см <span className="ml-1 text-xs text-zinc-500">· <Delta v={r.waist} baseV={base.waist} unit=" см" /></span>
+                <input className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  inputMode="decimal" value={r.waist || ""} onChange={(e)=>setRow(i,{waist:e.target.value})}/>
+              </label>
+
+              <label className="text-sm font-medium">
+                Бёдра, см <span className="ml-1 text-xs text-zinc-500">· <Delta v={r.hips} baseV={base.hips} unit=" см" /></span>
+                <input className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})}/>
+              </label>
+            </div>
+
+            <label className="mt-3 block text-sm">
+              Заметка
+              <textarea rows={3} className="mt-1 w-full rounded-md border border-zinc-300 p-3 text-sm"
+                placeholder="Самочувствие, фаза цикла, вода..." value={r.notes || ""}
+                onChange={(e)=>setRow(i,{notes:e.target.value})}/>
+            </label>
+
+            <label className="mt-3 block text-sm">
+              Фото (URL)
+              <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                placeholder="https://..." value={r.photo || ""}
+                onChange={(e)=>setRow(i,{photo:e.target.value})}/>
+            </label>
+          </div>
+        ))}
       </div>
-      <div className="mt-2 text-xs text-zinc-600">Подсказка: колонки «Δ» считают разницу относительно первой строки (старта).</div>
+
+      {/* Итоговые дельты */}
+      <div className="mt-4 space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
+        <div>Δ талия: <Delta v={rows.at(-1)?.waist} baseV={base.waist} unit=" см" /></div>
+        <div>Δ бёдра: <Delta v={rows.at(-1)?.hips}  baseV={base.hips}  unit=" см" /></div>
+        <div>Δ вес: <Delta   v={rows.at(-1)?.weight} baseV={base.weight} unit=" кг" /></div>
+      </div>
     </Section>
   );
 }
@@ -891,11 +913,28 @@ export default function R7Tracker() {
   const personalLink = buildPersonalLink({ profile: data.profile });
   const copyLink = async () => { try { await navigator.clipboard.writeText(personalLink); alert("Ссылка скопирована"); } catch { prompt("Скопируйте ссылку:", personalLink); } };
 
+  // Дельты для шапки (последняя запись минус первая)
+  const baseM = data.measures?.[0] || {};
+  const lastM = (data.measures?.length ? data.measures[data.measures.length - 1] : {}) || {};
+  const deltaText = (curr, base, unit) => {
+    const a = N(curr), b = N(base);
+    if (!a || !b) return "—";
+    const d = +(a - b).toFixed(1);
+    return (d > 0 ? `+${d}` : `${d}`) + " " + unit;
+  };
+  const deltaClass = (curr, base) => {
+    const a = N(curr), b = N(base);
+    if (!a || !b) return "text-zinc-600";
+    const d = a - b;
+    if (d === 0) return "text-zinc-600";
+    return d > 0 ? "text-rose-600" : "text-emerald-600";
+  };
+
   return (
     <div className="mx-auto max-w-6xl p-4 text-zinc-800">
       <header className="mb-6 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">R7 — 30-дневный трекер (дом/зал)</h1>
+          <h1 className="text-2xl font-bold">R7 — трекер</h1>
           <ActionsMenu
             onSettings={() => setShowOB(true)}
             onCopy={copyLink}
@@ -927,6 +966,19 @@ export default function R7Tracker() {
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
+        {/* Прогресс по замерам (видно всегда) */}
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+          <Pill className="bg-white/70">
+            Δ талия: <b className={`ml-1 ${deltaClass(lastM.waist, baseM.waist)}`}>{deltaText(lastM.waist, baseM.waist, "см")}</b>
+          </Pill>
+          <Pill className="bg-white/70">
+            Δ бёдра: <b className={`ml-1 ${deltaClass(lastM.hips, baseM.hips)}`}>{deltaText(lastM.hips, baseM.hips, "см")}</b>
+          </Pill>
+          <Pill className="bg-white/70">
+            Δ вес: <b className={`ml-1 ${deltaClass(lastM.weight, baseM.weight)}`}>{deltaText(lastM.weight, baseM.weight, "кг")}</b>
+          </Pill>
+        </div>
+
         {(inTG || canInstall) && (
           <div className="mt-2 rounded-xl border border-zinc-300 bg-white/80 p-3 text-sm">
             {inTG && <div className="mb-1">Откройте трекер в Safari/Chrome и «Добавить на экран» для установки как приложение.</div>}
@@ -934,7 +986,7 @@ export default function R7Tracker() {
           </div>
         )}
 
-        {/* Навигация: только 3 раздела (по просьбе) */}
+        {/* Навигация: 3 раздела */}
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
             ["programs", "Программы"],
