@@ -420,10 +420,19 @@ if (!last) return;
   }
 
   // видео
-  function getVideoHref(ex) {
-    const alt = (() => { try { return localStorage.getItem(`r7:video:${exId(level, ps.week, ps.day, ex)}`) || ""; } catch { return ""; }})();
-    return ex?.videos?.[0]?.href || alt || "";
+function getVideoHref(ex) {
+  let alt = "";
+  try {
+    const key = "r7:video:" + exId(level, ps.week, ps.day, ex);
+    const raw = localStorage.getItem(key);
+    alt = raw || "";
+  } catch (e) {
+    alt = "";
   }
+  // приоритет: из программы → из localStorage → пусто
+  return (ex && ex.videos && ex.videos[0] && ex.videos[0].href) || alt || "";
+}
+
   function openVideo(ex) {
     const href = getVideoHref(ex);
     if (href) window.open(href, "_blank", "noopener");
