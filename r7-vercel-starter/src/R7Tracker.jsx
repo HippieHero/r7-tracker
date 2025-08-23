@@ -1214,4 +1214,3 @@ function Onboarding({ initial, onClose }) {
     </div>
   );
 }
-```
