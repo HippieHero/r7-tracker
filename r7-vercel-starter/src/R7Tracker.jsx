@@ -642,7 +642,7 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <Section key={exIdx} id={"ex-" + exIdx} title={(<><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></>)} right={(<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>)}>
+            <Section key={exIdx} id={"ex-" + exIdx} title={(<><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></>)} right={(<div className="flex items-center gap-2"><div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div></div>)}>
 <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
                 <div className="min-w-0">
                   <div
@@ -686,7 +686,7 @@ function ProgramsTab({ data, setData }) {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_minmax(0,1.2fr)_minmax(0,1.2fr)_84px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
+                      <div key={si} className="grid grid-cols-[auto_96px_64px_minmax(0,1fr)_40px] items-center gap-2 rounded-xl border border-zinc-200 p-3">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
