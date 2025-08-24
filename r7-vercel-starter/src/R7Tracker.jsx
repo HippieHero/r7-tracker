@@ -180,7 +180,7 @@ function MetaBar({ ex, exIdx, addSet, removeLastSet }) {
         {intensity && <TinyPill>⚡ {intensity}</TinyPill>}
         {ex.warmup && <TinyPill>🔥 Разминка</TinyPill>}
         {eq && (
-          <TinyPill className="max-w-[60vw] sm:max-w-[460px]">
+          <TinyPill className="max-w-[80vw] sm:max-w-[560px]">
             🎒 <span className="truncate" title={eq}>{eq}</span>
           </TinyPill>
         )}
@@ -640,7 +640,7 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <div key={exIdx} id={"ex-" + exIdx} className="relative rounded-xl bg-white p-4 shadow-sm">
+            <div key={exIdx} id={"ex-" + exIdx} className="relative rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div
                 className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
                 title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
@@ -692,7 +692,7 @@ function ProgramsTab({ data, setData }) {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
+                      <div key={si} className="grid grid-cols-[auto_minmax(0,1.2fr)_minmax(0,1.2fr)_84px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
@@ -767,7 +767,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">{si+1}</td>
                             <td className="px-2 py-1">
                               <input
-                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
+                                className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.reps || ""}
                                 onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
@@ -778,7 +778,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">
                               <input
                                 id={`kg-${idBase}`}
-                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
+                                className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.weight || ""}
                                 onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
