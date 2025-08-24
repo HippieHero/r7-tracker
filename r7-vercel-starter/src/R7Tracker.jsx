@@ -131,8 +131,8 @@ const PROGRAMS = {
 };
 
 /* ===================== UI primitives ===================== */
-const Section = ({ title, children, right }) => (
-  <section className="mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur">
+const Section = ({ title, children, right, className = "", ...rest }) => (
+  <section {...rest} className={`mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur ${className}`}>
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       <div className="hidden md:block">{right}</div>
@@ -628,8 +628,9 @@ function ProgramsTab({ data, setData }) {
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
       />
 
-      <div className="mt-4 space-y-4">
-        {day.exercises.map((ex, exIdx) => {
+      </Section>
+
+      {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
           const progress = ps.progress[k]?.sets || [];
           const exDone = isExerciseDone(exIdx, ex.workSets);
@@ -640,23 +641,15 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <div key={exIdx} id={"ex-" + exIdx} className="relative rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-              <div
-                className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
-                title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
-              >
-                ✓
-              </div>
-              <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
+            <Section key={exIdx} id={"ex-" + exIdx} title={(<><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></>)} right={(<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>)}>
+<div className="flex flex-wrap items-start justify-between gap-2 pr-10">
                 <div className="min-w-0">
-                  <div className="text-xs text-zinc-500">{ex.muscle}</div>
                   <div
                     className="flex items-center gap-2"
                     onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
                     onTouchStart={onHoldStart}
                     onTouchEnd={onHoldEnd}
                   >
-                    <div className="text-base font-semibold">{ex.name}</div>
                     {getVideoHref(ex) && (
                       <button onClick={() => openVideo(ex)} className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs">▶︎ Видео</button>
                     )}
@@ -838,13 +831,11 @@ function ProgramsTab({ data, setData }) {
                   alert("Значения сохранены как «прошлый раз».");
                 }}>Сохранить «прошлый раз»</button>
               </div>
-            </div>
+            </Section>
           );
         })}
-      </div>
 
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
-    </Section>
   );
 }
 
