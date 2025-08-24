@@ -885,13 +885,11 @@ function WeekGoals({ ps, setPs, level, weekIdx }) {
         {goals.map((g, i) => (
           <label key={i} className="flex items-center gap-2">
             <input type="checkbox" checked={!!g.done} onChange={(e) => setGoal(i, { ...g, done: e.target.checked })}/>
-            <input className="w-full rounded border border-zinc-300 px-2 py-1" value={g.text} onChange={(e) => setGoal(i, { ...g, text: e.target.value })}/>
+            <input className="w-full rounded border border-zinc-300 px-2 py-1 text-sm" value={g.text} onChange={(e) => setGoal(i, { ...g, text: e.target.value })}/>
           </label>
         ))}
       </div>
     </div>
-    </>
-
   );
 }
 
