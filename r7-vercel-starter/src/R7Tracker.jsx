@@ -600,6 +600,7 @@ function ProgramsTab({ data, setData }) {
   }
 
   return (
+    <>
     <Section title="Программы тренировок" right={null}>
       <div className="mb-3">
         <Controls
@@ -888,6 +889,8 @@ function WeekGoals({ ps, setPs, level, weekIdx }) {
         ))}
       </div>
     </div>
+    </>
+
   );
 }
 
