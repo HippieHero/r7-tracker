@@ -132,7 +132,7 @@ const PROGRAMS = {
 
 /* ===================== UI primitives ===================== */
 const Section = ({ title, children, right, className = "", ...rest }) => (
-  <section {...rest} className="mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur ${className}"\>
+  <section {...rest} className={`mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur ${className}`}>
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       <div className="hidden md:block">{right}</div>
@@ -642,7 +642,7 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <Section key={exIdx} id={"ex-" + exIdx} title={(<div><div className=\"text-xs text-zinc-500\">{ex.muscle}</div><div className=\"text-base font-semibold\">{ex.name}</div></div>)} right={(<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>)}>
+            <Section key={exIdx} id={"ex-" + exIdx} title={(<div><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></div>)} right={(<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>)}>
 
               <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">{getVideoHref(ex) && (
