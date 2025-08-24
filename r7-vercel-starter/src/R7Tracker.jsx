@@ -380,36 +380,6 @@ function StatsRow({ volume, avgRir, timeText, started, paused, onStart, onPause,
     </div>
   );
 }
-    </div>
-  );
-  return (
-    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Card>
-        <div className="text-sm text-zinc-600">Объём:</div>
-        <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
-      </Card>
-      <Card>
-        <div className="text-sm text-zinc-600">Средн. RIR:</div>
-        <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
-      </Card>
-      <Card>
-        <div className="text-sm text-zinc-600">Время:</div>
-        <div className="mt-0.5 font-mono text-xl tabular-nums">{timeText || "—"}</div>
-        {!started ? (
-          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-                  onClick={onStart}>
-            Старт тренировки
-          </button>
-        ) : (
-          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-                  onClick={onReset}>
-            Сбросить
-          </button>
-        )}
-      </Card>
-    </div>
-  );
-}
 
 /* ===================== Controls ===================== */
 function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
