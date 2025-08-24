@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== Helpers / Constants ===================== */
@@ -144,6 +145,68 @@ const Section = ({ title, children, right }) => (
 const Pill = ({ children, className = "" }) => (
   <span className={`inline-flex items-center rounded-full border ${BORDER_LITE} px-2 py-1 text-xs text-zinc-600 ${className}`}>{children}</span>
 );
+
+/* --- NEW: ultra-compact pills & helpers for the meta-bar --- */
+const TinyPill = ({ children, className = "" }) => (
+  <span className={`inline-flex items-center gap-1 rounded-md border ${BORDER_LITE} bg-zinc-50 px-1.5 py-1 text-[11px] leading-none text-zinc-700 ${className}`}>{children}</span>
+);
+
+function shortRest(rest) {
+  if (!rest) return "";
+  return String(rest).replace(/\s*сек(унд[ыы]?)?/gi, "с").replace(/\s+/g, " ").trim();
+}
+function shortIntensity(intensity) {
+  if (!intensity) return "";
+  const m = String(intensity).match(/\((\d+)[–\-—](\d+)\s*повт\.?\)/i);
+  if (m) return `RIR ${m[1]}–${m[2]}`;
+  const m2 = String(intensity).match(/RIR\s*\d+(?:[–\-—]\d+)?/i);
+  if (m2) return m2[0].toUpperCase();
+  return String(intensity).replace("Вблизи отказа", "RIR").replace(/повт\.?/gi,"").trim();
+}
+
+/* --- NEW: compact meta-bar for exercise header (the blue highlighted area) --- */
+function MetaBar({ ex, exIdx, addSet, removeLastSet, exDone }) {
+  const setsReps = `${ex.workSets}×${ex.reps}`;
+  const rest = shortRest(ex.rest);
+  const intensity = shortIntensity(ex.intensity);
+  const eq = Array.isArray(ex.equipment) ? ex.equipment.join(", ") : "";
+
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white/60 px-2 py-1.5">
+      <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+        <TinyPill>🔁 {setsReps}</TinyPill>
+        {rest && <TinyPill>⏱ {rest}</TinyPill>}
+        {intensity && <TinyPill>⚡ {intensity}</TinyPill>}
+        {ex.warmup && <TinyPill>🔥 Разминка</TinyPill>}
+        {eq && (
+          <TinyPill className="max-w-[60vw] sm:max-w-[460px]">
+            🎒 <span className="truncate" title={eq}>{eq}</span>
+          </TinyPill>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          onClick={() => addSet(exIdx)}
+          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
+          title="+ подход"
+          aria-label="+ подход"
+        >+</button>
+        <button
+          onClick={() => removeLastSet(exIdx)}
+          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
+          title="– убрать"
+          aria-label="– убрать"
+        >–</button>
+        <span
+          title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
+          className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
+        >
+          ✓
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const InputMini = React.forwardRef(function InputMini(
   { className = "", onEnter, ...props },
@@ -380,10 +443,8 @@ function ProgramsTab({ data, setData }) {
   const [wStart, setWStart] = useState(() => {
     try { return Number(localStorage.getItem(wKey) || 0); } catch { return 0; }
   });
-  // если меняем день/неделю — перечитываем
   useEffect(() => {
     try { setWStart(Number(localStorage.getItem("r7:wstart:" + dayKey) || 0)); } catch { setWStart(0); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey]);
   useEffect(() => { try { if (wStart) localStorage.setItem(wKey, String(wStart)); else localStorage.removeItem(wKey); } catch {} }, [wStart, wKey]);
   const [, tickW] = useState(0);
@@ -517,7 +578,6 @@ function ProgramsTab({ data, setData }) {
 
   return (
     <Section title="Программы тренировок" right={null}>
-      {/* Неклейкий блок с контролами — остаётся на месте */}
       <div className="mb-3">
         <Controls
           level={level} setLevel={setLevel}
@@ -526,7 +586,6 @@ function ProgramsTab({ data, setData }) {
         />
       </div>
 
-      {/* Липкая информационная панель: слева прогресс/полоса, справа таймер отдыха */}
       <StickyInfoBar
         doneSets={doneSets}
         totalSets={totalSets}
@@ -534,7 +593,6 @@ function ProgramsTab({ data, setData }) {
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
       />
 
-      {/* НЕ липкая строка статов — как на скрине */}
       <StatsRow
         volume={dayStats.volume}
         avgRir={dayStats.avgRir}
@@ -544,7 +602,6 @@ function ProgramsTab({ data, setData }) {
         onReset={resetWorkout}
       />
 
-      {/* Списки упражнений */}
       <div className="mt-4 space-y-4">
         {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
@@ -586,28 +643,10 @@ function ProgramsTab({ data, setData }) {
                     </div>
                   )}
 
-                  {/* Компактная строка параметров упражнения */}
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
-                    <Pill>Рабочих: {ex.workSets}</Pill>
-                    <Pill>Повт.: {ex.reps}</Pill>
-                    <Pill>Отдых: {ex.rest}</Pill>
-                    <Pill>Инт-сть: {ex.intensity}</Pill>
-                    {ex.warmup && <Pill>+ Разминка</Pill>}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button onClick={() => addSet(exIdx)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">+ подход</button>
-                  <button onClick={() => removeLastSet(exIdx)} className="rounded-md border border-zinc-300 px-2 py-1 text-xs">–</button>
-                  <div className="text-xs text-zinc-600">{exDone ? "✅" : ""}</div>
+                  <MetaBar ex={ex} exIdx={exIdx} addSet={addSet} removeLastSet={removeLastSet} exDone={exDone} />
                 </div>
               </div>
 
-              {ex.equipment?.length > 0 && (
-                <div className="mt-2 text-xs text-zinc-600">Оборудование: {ex.equipment.join(", ")}</div>
-              )}
-
-              {/* Примечания — свёрнуты по умолчанию */}
               {ex.notes && (
                 <details className="mt-2">
                   <summary className="cursor-pointer text-sm text-zinc-700">Примечания</summary>
@@ -615,7 +654,6 @@ function ProgramsTab({ data, setData }) {
                 </details>
               )}
 
-              {/* Сеты: мобильные карточки */}
               <div className="mt-3">
                 <div className="space-y-2 sm:hidden">
                   {Array.from({ length: ex.workSets }).map((_, si) => {
@@ -677,7 +715,6 @@ function ProgramsTab({ data, setData }) {
                   })}
                 </div>
 
-                {/* desktop/tablet таблица */}
                 <div className="hidden overflow-x-auto sm:block">
                   <table className="w-full text-sm">
                     <thead className="bg-zinc-50">
@@ -751,7 +788,6 @@ function ProgramsTab({ data, setData }) {
                 </div>
               </div>
 
-              {/* Кнопка «Следующее упражнение» */}
               {exIdx < day.exercises.length - 1 && (
                 <button
                   className="mt-3 w-full rounded-md border border-zinc-300 py-2 text-sm"
@@ -763,7 +799,6 @@ function ProgramsTab({ data, setData }) {
                 </button>
               )}
 
-              {/* Действия */}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <button className={`rounded-md border ${BORDER_LITE} px-2 py-1`} onClick={() => copyLast(exIdx)}>Как в прошлый раз</button>
                 <button className={`rounded-md border ${BORDER_LITE} px-2 py-1`} onClick={() => {
@@ -776,7 +811,6 @@ function ProgramsTab({ data, setData }) {
         })}
       </div>
 
-      {/* Чек-лист целей недели */}
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
     </Section>
   );
@@ -925,7 +959,7 @@ function MeasuresTab({ data, setData }) {
               </label>
 
               <label className="text-sm font-medium">
-                Бёдра, см <span className="ml-1 text-xs text-zinc-500">· <Delta v={r.hips} baseV={base.hips} unit=" см" /></span>
+                Бёдра, см <span className="ml-1 text-xs text-zinc-500">· <Delta v={r.hips}  baseV={base.hips}  unit=" см" /></span>
                 <input className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
                   inputMode="decimal" value={r.hips || ""} onChange={(e)=>setRow(i,{hips:e.target.value})}/>
               </label>
@@ -948,7 +982,6 @@ function MeasuresTab({ data, setData }) {
         ))}
       </div>
 
-      {/* Итоговые дельты */}
       <div className="mt-4 space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
         <div>Δ талия: <Delta v={rows.at(-1)?.waist} baseV={base.waist} unit=" см" /></div>
         <div>Δ бёдра: <Delta v={rows.at(-1)?.hips}  baseV={base.hips}  unit=" см" /></div>
@@ -969,12 +1002,11 @@ export default function R7Tracker() {
   useEffect(() => { setData((prev) => applyParamsToData(prev)); }, []);
   useEffect(() => {
     if (!data.profile?.mode || !data.profile?.level || !data.profile?.start) setShowOB(true);
-  }, []); // once
+  }, []);
 
   const completedDays = useMemo(() => data.plan.filter((d) => d.status).length, [data.plan]);
   const adherence = useMemo(() => Math.round((completedDays / data.plan.length) * 100) || 0, [completedDays, data.plan.length]);
 
-  // mini streak 7 дней (первые 7 в плане)
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
     <div className="flex items-center gap-1">
@@ -987,25 +1019,19 @@ export default function R7Tracker() {
   const personalLink = buildPersonalLink({ profile: data.profile });
   const copyLink = async () => { try { await navigator.clipboard.writeText(personalLink); alert("Ссылка скопирована"); } catch { prompt("Скопируйте ссылку:", personalLink); } };
 
-  // Дельты для шапки (последняя запись минус первая)
-const measuresArr = Array.isArray(data?.measures) ? data.measures : [];
+  const measuresArr = Array.isArray(data?.measures) ? data.measures : [];
+  const baseM = measuresArr.length > 0 ? (measuresArr[0] || {}) : {};
+  const lastM = measuresArr.length > 0 ? (measuresArr[measuresArr.length - 1] || {}) : {};
 
-const baseM = measuresArr.length > 0 ? (measuresArr[0] || {}) : {};
-const lastM = measuresArr.length > 0 ? (measuresArr[measuresArr.length - 1] || {}) : {};
-
-const deltaText = (curr, base, unit) => {
-  const a = N(curr);
-  const b = N(base);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return `— ${unit}`;
-  const d = a - b;
-  if (d === 0) return `0 ${unit}`;
-  const sign = d > 0 ? "+" : "";
-  return `${sign}${d.toFixed(1)} ${unit}`;
-};
-
-const deltaWaist  = deltaText(lastM.waist,  baseM.waist,  "см");
-const deltaHips   = deltaText(lastM.hips,   baseM.hips,   "см");
-const deltaWeight = deltaText(lastM.weight, baseM.weight, "кг");
+  const deltaText = (curr, base, unit) => {
+    const a = N(curr);
+    const b = N(base);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return `— ${unit}`;
+    const d = a - b;
+    if (d === 0) return `0 ${unit}`;
+    const sign = d > 0 ? "+" : "";
+    return `${sign}${d.toFixed(1)} ${unit}`;
+  };
 
   const deltaClass = (curr, base) => {
     const a = N(curr), b = N(base);
@@ -1051,7 +1077,6 @@ const deltaWeight = deltaText(lastM.weight, baseM.weight, "кг");
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
-        {/* Прогресс по замерам (видно всегда) */}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
           <Pill className="bg-white/70">
             Δ талия: <b className={`ml-1 ${deltaClass(lastM.waist, baseM.waist)}`}>{deltaText(lastM.waist, baseM.waist, "см")}</b>
@@ -1064,7 +1089,6 @@ const deltaWeight = deltaText(lastM.weight, baseM.weight, "кг");
           </Pill>
         </div>
 
-        {/* Навигация: 3 раздела */}
         <nav className="mt-2 flex flex-wrap gap-2">
           {[
             ["programs", "Программы"],
