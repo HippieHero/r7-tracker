@@ -1,6 +1,3 @@
-
-import React, { useEffect, useMemo, useState } from "react";
-
 /* ===================== Helpers / Constants ===================== */
 const STORAGE_KEY = "r7_tracker_v4";
 const PROG_KEY    = "r7_programs_v2";
@@ -165,7 +162,8 @@ function shortIntensity(intensity) {
 }
 
 /* --- NEW: compact meta-bar for exercise header (the blue highlighted area) --- */
-function MetaBar({ ex, exIdx, addSet, removeLastSet, exDone }) {
+
+function MetaBar({ ex, exIdx, addSet, removeLastSet }) {
   const setsReps = `${ex.workSets}×${ex.reps}`;
   const rest = shortRest(ex.rest);
   const intensity = shortIntensity(ex.intensity);
@@ -179,35 +177,18 @@ function MetaBar({ ex, exIdx, addSet, removeLastSet, exDone }) {
         {intensity && <TinyPill>⚡ {intensity}</TinyPill>}
         {ex.warmup && <TinyPill>🔥 Разминка</TinyPill>}
         {eq && (
-          <TinyPill className="max-w-[60vw] sm:max-w-[460px]">
+          <TinyPill className="max-w-[80vw] sm:max-w-[560px]">
             🎒 <span className="truncate" title={eq}>{eq}</span>
           </TinyPill>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          onClick={() => addSet(exIdx)}
-          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
-          title="+ подход"
-          aria-label="+ подход"
-        >+</button>
-        <button
-          onClick={() => removeLastSet(exIdx)}
-          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
-          title="– убрать"
-          aria-label="– убрать"
-        >–</button>
-        <span
-          title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
-          className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
-        >
-          ✓
-        </span>
+        <button onClick={() => addSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="+ подход" aria-label="+ подход">+</button>
+        <button onClick={() => removeLastSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="– убрать" aria-label="– убрать">–</button>
       </div>
     </div>
   );
 }
-
 const InputMini = React.forwardRef(function InputMini(
   { className = "", onEnter, ...props },
   ref
@@ -335,38 +316,52 @@ function saveDayHistory(level, week, day, dayObj, progress) {
   });
 }
 
+
 /* ===================== Stats row (объём / RIR / время) ===================== */
-function StatsRow({ volume, avgRir, timeText, started, onStart, onReset }) {
-  const Card = ({ children }) => (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+function StatsRow({ volume, avgRir, timeText, started, paused, onStart, onPause, onResume, onReset }) {
+  const Card = ({ children, className = "" }) => (
+    <div className={`rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm ${className}`}>
       {children}
     </div>
   );
   return (
-    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Card>
-        <div className="text-sm text-zinc-600">Объём:</div>
-        <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
-      </Card>
-      <Card>
-        <div className="text-sm text-zinc-600">Средн. RIR:</div>
-        <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
-      </Card>
-      <Card>
-        <div className="text-sm text-zinc-600">Время:</div>
-        <div className="mt-0.5 font-mono text-xl tabular-nums">{timeText || "—"}</div>
-        {!started ? (
-          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-                  onClick={onStart}>
-            Старт тренировки
-          </button>
-        ) : (
-          <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
-                  onClick={onReset}>
-            Сбросить
-          </button>
-        )}
-      </Card>
+    <div className="mt-2">
+      {/* 1) Объём и RIR в одну линию */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card>
+          <div className="text-sm text-zinc-600">Объём</div>
+          <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
+        </Card>
+        <Card>
+          <div className="text-sm text-zinc-600">Средн. RIR</div>
+          <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
+        </Card>
+      </div>
+
+      {/* 2) Ниже — время тренировки + кнопки */}
+      <div className="mt-3">
+        <Card>
+          <div className="text-sm text-zinc-600">Время</div>
+          <div className="mt-0.5 font-mono text-xl tabular-nums">{timeText || "—"}</div>
+          {!started && (
+            <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onStart}>
+              Старт тренировки
+            </button>
+          )}
+          {started && !paused && (
+            <div className="mt-2 flex gap-2">
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onPause}>Пауза</button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>Сброс</button>
+            </div>
+          )}
+          {started && paused && (
+            <div className="mt-2 flex gap-2">
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onResume}>Продолжить</button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>Сброс</button>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
@@ -437,31 +432,41 @@ function ProgramsTab({ data, setData }) {
   const mm = String(Math.floor(leftMs / 1000 / 60)).padStart(2, "0");
   const ss = String(Math.floor((leftMs / 1000) % 60)).padStart(2, "0");
 
-  /* ---------- Таймер всей тренировки (независимый) ---------- */
+  /* ---------- Таймер всей тренировки (старт/пауза/возобновить/сброс) ---------- */
   const dayKey = `${level}.${ps.week}.${ps.day}`;
-  const wKey = "r7:wstart:" + dayKey;
-  const [wStart, setWStart] = useState(() => {
-    try { return Number(localStorage.getItem(wKey) || 0); } catch { return 0; }
-  });
+  const wKeyStart = "r7:wstart:" + dayKey;
+  const wKeyAccum = "r7:waccum:" + dayKey;
+  const [wStart, setWStart] = useState(() => { try { return Number(localStorage.getItem(wKeyStart) || 0); } catch { return 0; } });
+  const [wAccum, setWAccum] = useState(() => { try { return Number(localStorage.getItem(wKeyAccum) || 0); } catch { return 0; } });
+
   useEffect(() => {
-    try { setWStart(Number(localStorage.getItem("r7:wstart:" + dayKey) || 0)); } catch { setWStart(0); }
+    try {
+      setWStart(Number(localStorage.getItem(wKeyStart) || 0));
+      setWAccum(Number(localStorage.getItem(wKeyAccum) || 0));
+    } catch {
+      setWStart(0); setWAccum(0);
+    }
   }, [dayKey]);
-  useEffect(() => { try { if (wStart) localStorage.setItem(wKey, String(wStart)); else localStorage.removeItem(wKey); } catch {} }, [wStart, wKey]);
-  const [, tickW] = useState(0);
-  useEffect(() => {
-    if (!wStart) return;
-    const t = setInterval(() => tickW((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, [wStart]);
-  const elapsed = Math.max(0, wStart ? Date.now() - wStart : 0);
+
+  useEffect(() => { try { wStart ? localStorage.setItem(wKeyStart, String(wStart)) : localStorage.removeItem(wKeyStart); } catch {} }, [wStart, wKeyStart]);
+  useEffect(() => { try { wAccum ? localStorage.setItem(wKeyAccum, String(wAccum)) : localStorage.removeItem(wKeyAccum); } catch {} }, [wAccum, wKeyAccum]);
+
+  const [, force] = useState(0);
+  useEffect(() => { if (!wStart) return; const t = setInterval(() => force(x=>x+1), 1000); return () => clearInterval(t); }, [wStart]);
+
+  const elapsed = Math.max(0, wAccum + (wStart ? Date.now() - wStart : 0));
   const eh = Math.floor(elapsed / 3600000);
   const em = Math.floor((elapsed % 3600000) / 60000);
   const es = Math.floor((elapsed % 60000) / 1000);
-  const timeText = wStart
-    ? (eh > 0 ? `${String(eh).padStart(2,"0")}:${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}` : `${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}`)
-    : "";
+  const timeText = (eh > 0 ? `${String(eh).padStart(2,"0")}:` : "") + `${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}`;
+  const started = !!(wStart || wAccum);
+  const paused = !wStart && wAccum > 0;
 
-  const startWorkout = () => setWStart(Date.now());
+  const startWorkout  = () => { setWAccum(0); setWStart(Date.now()); };
+  const pauseWorkout  = () => { if (wStart) { setWAccum(wAccum + (Date.now()-wStart)); setWStart(0); } };
+  const resumeWorkout = () => { if (!wStart) setWStart(Date.now()); };
+  const resetWorkout  = () => { setWStart(0); setWAccum(0); };
+const startWorkout = () => setWStart(Date.now());
   const resetWorkout = () => setWStart(0);
 
   // апдейтер ячейки (функциональный)
@@ -561,7 +566,6 @@ function ProgramsTab({ data, setData }) {
 
   if (!day) {
     return (
-      <>
       <Section title="Программы тренировок" right={null}>
         <div className="mb-3">
           <Controls
@@ -587,20 +591,23 @@ function ProgramsTab({ data, setData }) {
         />
       </div>
 
+      <StatsRow
+        volume={dayStats.volume}
+        avgRir={dayStats.avgRir}
+        timeText={timeText}
+        started={started}
+        paused={paused}
+        onStart={startWorkout}
+        onPause={pauseWorkout}
+        onResume={resumeWorkout}
+        onReset={resetWorkout}
+      />
+
       <StickyInfoBar
         doneSets={doneSets}
         totalSets={totalSets}
         leftContent={null}
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
-      />
-
-      <StatsRow
-        volume={dayStats.volume}
-        avgRir={dayStats.avgRir}
-        timeText={timeText}
-        started={!!wStart}
-        onStart={startWorkout}
-        onReset={resetWorkout}
       />
 
       
@@ -619,7 +626,13 @@ function ProgramsTab({ data, setData }) {
 
           return (
             <section key={exIdx} id={"ex-" + exIdx} className="relative rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-2">
+              <div
+                className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
+                title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
+              >
+                ✓
+              </div>
+              <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
                 <div className="min-w-0">
                   <div className="text-xs text-zinc-500">{ex.muscle}</div>
                   <div
@@ -664,7 +677,7 @@ function ProgramsTab({ data, setData }) {
                     const row = progress[si] || {};
                     const idBase = `${exIdx}-${si}`;
                     return (
-                      <div key={si} className="grid grid-cols-[auto_1fr_1fr_72px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
+                      <div key={si} className="grid grid-cols-[auto_minmax(0,1.2fr)_minmax(0,1.2fr)_84px_40px] items-center gap-3 rounded-xl border border-zinc-200 p-3">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 text-xs">{si+1}</span>
 
                         <InputMini
@@ -739,7 +752,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">{si+1}</td>
                             <td className="px-2 py-1">
                               <input
-                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
+                                className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.reps || ""}
                                 onChange={(e) => setCell(exIdx, si, "reps", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
@@ -750,7 +763,7 @@ function ProgramsTab({ data, setData }) {
                             <td className="px-2 py-1">
                               <input
                                 id={`kg-${idBase}`}
-                                className="h-8 w-20 rounded border border-zinc-300 px-2 text-sm"
+                                className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
                                 value={row.weight || ""}
                                 onChange={(e) => setCell(exIdx, si, "weight", e.target.value)}
                                 onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
@@ -818,7 +831,7 @@ function ProgramsTab({ data, setData }) {
       </div>
 
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
-      </>
+      </Section>
   );
 }
 
@@ -1244,3 +1257,4 @@ function Onboarding({ initial, onClose }) {
     </div>
   );
 }
+      <div className="mt-4 space-y-4">m "react";
