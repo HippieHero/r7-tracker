@@ -561,6 +561,7 @@ function ProgramsTab({ data, setData }) {
 
   if (!day) {
     return (
+      <>
       <Section title="Программы тренировок" right={null}>
         <div className="mb-3">
           <Controls
@@ -815,7 +816,7 @@ function ProgramsTab({ data, setData }) {
 
 
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
-    </Section>
+      </>
   );
 }
 
