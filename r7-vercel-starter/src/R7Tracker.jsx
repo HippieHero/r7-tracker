@@ -1,3 +1,6 @@
+
+import React, { useEffect, useMemo, useState } from "react";
+
 /* ===================== Helpers / Constants ===================== */
 const STORAGE_KEY = "r7_tracker_v4";
 const PROG_KEY    = "r7_programs_v2";
@@ -128,8 +131,8 @@ const PROGRAMS = {
 };
 
 /* ===================== UI primitives ===================== */
-const Section = ({ title, children, right }) => (
-  <section className="mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur">
+const Section = ({ title, children, right, className = "", ...rest }) => (
+  <section {...rest} className="mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur ${className}"\>
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
       <div className="hidden md:block">{right}</div>
@@ -182,13 +185,25 @@ function MetaBar({ ex, exIdx, addSet, removeLastSet }) {
           </TinyPill>
         )}
       </div>
+      {/* ONLY +/- here now */}
       <div className="flex shrink-0 items-center gap-1.5">
-        <button onClick={() => addSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="+ подход" aria-label="+ подход">+</button>
-        <button onClick={() => removeLastSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="– убрать" aria-label="– убрать">–</button>
+        <button
+          onClick={() => addSet(exIdx)}
+          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
+          title="+ подход"
+          aria-label="+ подход"
+        >+</button>
+        <button
+          onClick={() => removeLastSet(exIdx)}
+          className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none"
+          title="– убрать"
+          aria-label="– убрать"
+        >–</button>
       </div>
     </div>
   );
 }
+
 const InputMini = React.forwardRef(function InputMini(
   { className = "", onEnter, ...props },
   ref
@@ -441,8 +456,8 @@ function ProgramsTab({ data, setData }) {
 
   useEffect(() => {
     try {
-      setWStart(Number(localStorage.getItem(wKeyStart) || 0));
-      setWAccum(Number(localStorage.getItem(wKeyAccum) || 0));
+      setWStart(Number(localStorage.getItem("r7:wstart:" + dayKey) || 0));
+      setWAccum(Number(localStorage.getItem("r7:waccum:" + dayKey) || 0));
     } catch {
       setWStart(0); setWAccum(0);
     }
@@ -451,23 +466,26 @@ function ProgramsTab({ data, setData }) {
   useEffect(() => { try { wStart ? localStorage.setItem(wKeyStart, String(wStart)) : localStorage.removeItem(wKeyStart); } catch {} }, [wStart, wKeyStart]);
   useEffect(() => { try { wAccum ? localStorage.setItem(wKeyAccum, String(wAccum)) : localStorage.removeItem(wKeyAccum); } catch {} }, [wAccum, wKeyAccum]);
 
-  const [, force] = useState(0);
-  useEffect(() => { if (!wStart) return; const t = setInterval(() => force(x=>x+1), 1000); return () => clearInterval(t); }, [wStart]);
+  const [, tickW] = useState(0);
+  useEffect(() => {
+    if (!wStart) return;
+    const t = setInterval(() => tickW((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [wStart]);
 
   const elapsed = Math.max(0, wAccum + (wStart ? Date.now() - wStart : 0));
   const eh = Math.floor(elapsed / 3600000);
   const em = Math.floor((elapsed % 3600000) / 60000);
   const es = Math.floor((elapsed % 60000) / 1000);
   const timeText = (eh > 0 ? `${String(eh).padStart(2,"0")}:` : "") + `${String(em).padStart(2,"0")}:${String(es).padStart(2,"0")}`;
-  const started = !!(wStart || wAccum);
-  const paused = !wStart && wAccum > 0;
 
-  const startWorkout  = () => { setWAccum(0); setWStart(Date.now()); };
-  const pauseWorkout  = () => { if (wStart) { setWAccum(wAccum + (Date.now()-wStart)); setWStart(0); } };
+  const startWorkout = () => { setWStart(Date.now()); setWAccum(0); };
+  const pauseWorkout = () => { if (wStart) { setWAccum(wAccum + (Date.now() - wStart)); setWStart(0); } };
   const resumeWorkout = () => { if (!wStart) setWStart(Date.now()); };
-  const resetWorkout  = () => { setWStart(0); setWAccum(0); };
-const startWorkout = () => setWStart(Date.now());
-  const resetWorkout = () => setWStart(0);
+  const resetWorkout = () => { setWStart(0); setWAccum(0); };
+
+  const paused = !wStart && wAccum > 0;
+  const started = !!(wStart || wAccum);
 
   // апдейтер ячейки (функциональный)
   function setCell(exIdx, setIdx, field, value) {
@@ -582,6 +600,7 @@ const startWorkout = () => setWStart(Date.now());
   }
 
   return (
+    <>
     <Section title="Программы тренировок" right={null}>
       <div className="mb-3">
         <Controls
@@ -610,11 +629,9 @@ const startWorkout = () => setWStart(Date.now());
         rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
       />
 
-      
       </Section>
 
-<div className="space-y-4">
-        {day.exercises.map((ex, exIdx) => {
+      {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
           const progress = ps.progress[k]?.sets || [];
           const exDone = isExerciseDone(exIdx, ex.workSets);
@@ -625,24 +642,10 @@ const startWorkout = () => setWStart(Date.now());
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <section key={exIdx} id={"ex-" + exIdx} className="relative rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm">
-              <div
-                className={`absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`}
-                title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}
-              >
-                ✓
-              </div>
-              <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
-                <div className="min-w-0">
-                  <div className="text-xs text-zinc-500">{ex.muscle}</div>
-                  <div
-                    className="flex items-center gap-2"
-                    onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
-                    onTouchStart={onHoldStart}
-                    onTouchEnd={onHoldEnd}
-                  >
-                    <div className="text-base font-semibold">{ex.name}</div>
-                    {getVideoHref(ex) && (
+            <Section key={exIdx} id={"ex-" + exIdx} title={(<div><div className=\"text-xs text-zinc-500\">{ex.muscle}</div><div className=\"text-base font-semibold\">{ex.name}</div></div>)} right={(<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>)}>
+
+              <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">{getVideoHref(ex) && (
                       <button onClick={() => openVideo(ex)} className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs">▶︎ Видео</button>
                     )}
                   </div>
@@ -823,15 +826,12 @@ const startWorkout = () => setWStart(Date.now());
                   alert("Значения сохранены как «прошлый раз».");
                 }}>Сохранить «прошлый раз»</button>
               </div>
-            </section>
+            </Section>
           );
         })}
 
-
-      </div>
-
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
-      </Section>
+    </>
   );
 }
 
@@ -1257,4 +1257,3 @@ function Onboarding({ initial, onClose }) {
     </div>
   );
 }
-      <div className="mt-4 space-y-4">m "react";
