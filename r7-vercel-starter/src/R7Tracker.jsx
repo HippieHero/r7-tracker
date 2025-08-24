@@ -135,9 +135,8 @@ const Section = ({ title, children, right, className = "", ...rest }) => (
   <section {...rest} className={`mb-8 rounded-2xl border border-zinc-200 bg-white/70 p-4 shadow-sm backdrop-blur ${className}`}>
     <div className="mb-4 flex items-center justify-between">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="hidden md:block">{right}</div>
+      <div className="flex items-center gap-2">{right}</div>
     </div>
-    <div className="md:hidden">{right}</div>
     {children}
   </section>
 );
