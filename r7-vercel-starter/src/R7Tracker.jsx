@@ -837,6 +837,7 @@ function ProgramsTab({ data, setData }) {
         })}
 
       <WeekGoals ps={ps} setPs={setPs} level={level} weekIdx={ps.week} />
+    </>
   );
 }
 
