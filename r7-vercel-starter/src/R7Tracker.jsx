@@ -620,17 +620,16 @@ function ProgramsTab({ data, setData }) {
         onResume={resumeWorkout}
         onReset={resetWorkout}
       />
+</Section>
+    <StickyInfoBar
+      doneSets={doneSets}
+      totalSets={totalSets}
+      leftContent={null}
+      rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
+    />
 
-      <StickyInfoBar
-        doneSets={doneSets}
-        totalSets={totalSets}
-        leftContent={null}
-        rightTimer={{ mm, ss, start: (s)=>setRestEnd(Date.now()+s*1000), stop: ()=>setRestEnd(0), active: !!restEnd }}
-      />
 
-      </Section>
-
-      {day.exercises.map((ex, exIdx) => {
+   {day.exercises.map((ex, exIdx) => {
           const k = keyFor(level, ps.week, ps.day, exIdx);
           const progress = ps.progress[k]?.sets || [];
           const exDone = isExerciseDone(exIdx, ex.workSets);
