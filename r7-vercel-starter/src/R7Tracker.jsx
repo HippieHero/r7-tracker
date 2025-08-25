@@ -641,8 +641,7 @@ function ProgramsTab({ data, setData }) {
           const onHoldEnd   = () => { if (holdRef.current) { clearTimeout(holdRef.current); holdRef.current = null; } };
 
           return (
-            <Section key={exIdx} id={"ex-" + exIdx} title={(<><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></>)} right={(<div className="flex items-center gap-2"><div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"} right={(<div className="flex items-center gap-2">
-<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div></div>)}>✓</div></div>)}>
+            <Section key={exIdx} id={"ex-" + exIdx} title={(<div className="flex items-center gap-2">{<div className={`flex h-7 w-7 items-center justify-center rounded-full border ${exDone ? "border-emerald-300 bg-emerald-500 text-white" : "border-zinc-300 text-zinc-500"}`} title={exDone ? "Упражнение выполнено" : "Есть невыполненные подходы"}>✓</div>}<div><div className="text-xs text-zinc-500">{ex.muscle}</div><div className="text-base font-semibold">{ex.name}</div></div></div>)} right={(<div className="flex items-center gap-2"></div>)}>✓</div></div>)}>
 <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
                 <div className="min-w-0">
                   <div
@@ -651,9 +650,7 @@ function ProgramsTab({ data, setData }) {
                     onTouchStart={onHoldStart}
                     onTouchEnd={onHoldEnd}
                   >
-                    {getVideoHref(ex) && (
-                      <button onClick={() => openVideo(ex)} className="rounded-full border border-zinc-300 px-2 py-0.5 text-xs">▶︎ Видео</button>
-                    )}
+                    
                   </div>
 
                   {menuOpen && (
