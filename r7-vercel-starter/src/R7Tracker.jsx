@@ -347,8 +347,22 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
           <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
         </Card>
         <Card>
-                 <div className="text-sm text-zinc-600">Эффективность</div>
+      <div className="flex items-start justify-between">
+            <div className="text-sm text-zinc-600">Эффективность</div>
+            <button
+              className="ml-2 h-5 w-5 rounded-full border border-zinc-300 text-xs text-zinc-600"
+              onClick={() =>
+                alert(
+                  "Эффективность учитывает, сколько подходов выполнено и насколько они были тяжёлыми. Рассчитывается как (выполнение × средняя интенсивность) × 100 %."
+                )
+              }
+              aria-label="Что такое эффективность?"
+            >
+              ?
+            </button>
+          </div>
           <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
+        </Card>
         </Card>
       </div>
 
