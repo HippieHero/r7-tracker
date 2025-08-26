@@ -331,8 +331,8 @@ function saveDayHistory(level, week, day, dayObj, progress) {
 }
 
 
-/* ===================== Stats row (объём / RIR / время) ===================== */
-function StatsRow({ volume, avgRir, timeText, started, paused, onStart, onPause, onResume, onReset }) {
+/* ===================== Stats row (объём / эффективность / время) ===================== */
+function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, onPause, onResume, onReset }) {
   const Card = ({ children, className = "" }) => (
     <div className={`rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm ${className}`}>
       {children}
@@ -340,15 +340,29 @@ function StatsRow({ volume, avgRir, timeText, started, paused, onStart, onPause,
   );
   return (
     <div className="mt-2">
-      {/* 1) Объём и RIR в одну линию */}
+   {/* 1) Объём и эффективность в одну линию */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <div className="text-sm text-zinc-600">Объём</div>
           <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
         </Card>
         <Card>
-          <div className="text-sm text-zinc-600">Средн. RIR</div>
-          <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
+      <div className="flex items-start justify-between">
+            <div className="text-sm text-zinc-600">Эффективность</div>
+            <button
+              className="ml-2 h-5 w-5 rounded-full border border-zinc-300 text-xs text-zinc-600"
+              onClick={() =>
+                alert(
+                  "Эффективность учитывает, сколько подходов выполнено и насколько они были тяжёлыми. Рассчитывается как (выполнение × средняя интенсивность) × 100 %."
+                )
+              }
+              aria-label="Что такое эффективность?"
+            >
+              ?
+            </button>
+          </div>
+          <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
+        </Card>
         </Card>
       </div>
 
@@ -562,24 +576,28 @@ function ProgramsTab({ data, setData }) {
     }).catch(() => { prompt("Скопируйте ссылку вручную:", href); });
   }
 
-  // микростаты дня (объём + средний RIR)
+  // микростаты дня (объём + эффективность)
   const dayStats = useMemo(() => {
-    if (!day) return { volume: 0, avgRir: "-" };
-    let vol = 0; let rirSum = 0, rirNum = 0;
+    if (!day) return { volume: 0, effectiveness: undefined };
+    let vol = 0; let scoreSum = 0, completed = 0;
     day.exercises.forEach((ex, exIdx) => {
       const k = keyFor(level, ps.week, ps.day, exIdx);
       const rows = ps.progress[k]?.sets || [];
       rows.forEach(r => {
         vol += N(r.weight) * N(r.reps);
-        if (r?.rir !== "" && r?.rir != null) {
-          const rv = r.rir === "0" ? 0 : N(r.rir);
-          if (Number.isFinite(rv)) { rirSum += rv; rirNum += 1; }
+        if (r?.done) {
+          const rir = Number(r.rir ?? 4);
+          const intensity = Math.max(0, (4 - rir) / 4);
+          scoreSum += intensity;
+          completed += 1;
         }
       });
     });
-    const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
-    return { volume: Math.round(vol), avgRir: avg };
-  }, [day, ps.progress, level, ps.week, ps.day]);
+   const completion = totalSets ? completed / totalSets : 0;
+    const avgIntensity = completed ? scoreSum / completed : 0;
+    const effectiveness = Math.round(100 * completion * avgIntensity);
+    return { volume: Math.round(vol), effectiveness };
+  }, [day, ps.progress, level, ps.week, ps.day, totalSets]);
 
   if (!day) {
     return (
@@ -611,7 +629,7 @@ function ProgramsTab({ data, setData }) {
 
       <StatsRow
         volume={dayStats.volume}
-        avgRir={dayStats.avgRir}
+        effectiveness={dayStats.effectiveness}
         timeText={timeText}
         started={started}
         paused={paused}
