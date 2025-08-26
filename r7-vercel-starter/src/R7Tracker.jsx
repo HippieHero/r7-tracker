@@ -363,7 +363,6 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
           </div>
           <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
         </Card>
-        </Card>
       </div>
 
       {/* 2) Ниже — время тренировки + кнопки */}
