@@ -331,8 +331,8 @@ function saveDayHistory(level, week, day, dayObj, progress) {
 }
 
 
-/* ===================== Stats row (объём / эффективность / время) ===================== */
-function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, onPause, onResume, onReset }) {
+/* ===================== Stats row (объём / RIR / время) ===================== */
+function StatsRow({ volume, avgRir, timeText, started, paused, onStart, onPause, onResume, onReset }) {
   const Card = ({ children, className = "" }) => (
     <div className={`rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm ${className}`}>
       {children}
@@ -340,28 +340,15 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
   );
   return (
     <div className="mt-2">
-   {/* 1) Объём и эффективность в одну линию */}
+      {/* 1) Объём и RIR в одну линию */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <div className="text-sm text-zinc-600">Объём</div>
           <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
         </Card>
         <Card>
-      <div className="flex items-start justify-between">
-            <div className="text-sm text-zinc-600">Эффективность</div>
-            <button
-              className="ml-2 h-5 w-5 rounded-full border border-zinc-300 text-xs text-zinc-600"
-              onClick={() =>
-                alert(
-                  "Эффективность учитывает, сколько подходов выполнено и насколько они были тяжёлыми. Рассчитывается как (выполнение × средняя интенсивность) × 100 %."
-                )
-              }
-              aria-label="Что такое эффективность?"
-            >
-              ?
-            </button>
-          </div>
-          <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
+          <div className="text-sm text-zinc-600">Средн. RIR</div>
+          <div className="mt-0.5 text-xl font-semibold">{avgRir}</div>
         </Card>
       </div>
 
@@ -414,7 +401,8 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
 }
 
 /* ===================== Programs tab ===================== */
-function ProgramsTab({ data, setData, ps, setPs }) {
+function ProgramsTab({ data, setData }) {
+  const [ps, setPs] = useProgramsState();
   const level = ps.level;
   const prog = PROGRAMS[level] || { weeks: [] };
   const week = prog.weeks[ps.week] || { days: [] };
@@ -574,28 +562,24 @@ function ProgramsTab({ data, setData, ps, setPs }) {
     }).catch(() => { prompt("Скопируйте ссылку вручную:", href); });
   }
 
-  // микростаты дня (объём + эффективность)
+  // микростаты дня (объём + средний RIR)
   const dayStats = useMemo(() => {
-    if (!day) return { volume: 0, effectiveness: undefined };
-    let vol = 0; let scoreSum = 0, completed = 0;
+    if (!day) return { volume: 0, avgRir: "-" };
+    let vol = 0; let rirSum = 0, rirNum = 0;
     day.exercises.forEach((ex, exIdx) => {
       const k = keyFor(level, ps.week, ps.day, exIdx);
       const rows = ps.progress[k]?.sets || [];
       rows.forEach(r => {
         vol += N(r.weight) * N(r.reps);
-        if (r?.done) {
-          const rir = Number(r.rir ?? 4);
-          const intensity = Math.max(0, (4 - rir) / 4);
-          scoreSum += intensity;
-          completed += 1;
+        if (r?.rir !== "" && r?.rir != null) {
+          const rv = r.rir === "0" ? 0 : N(r.rir);
+          if (Number.isFinite(rv)) { rirSum += rv; rirNum += 1; }
         }
       });
     });
-   const completion = totalSets ? completed / totalSets : 0;
-    const avgIntensity = completed ? scoreSum / completed : 0;
-    const effectiveness = Math.round(100 * completion * avgIntensity);
-    return { volume: Math.round(vol), effectiveness };
-  }, [day, ps.progress, level, ps.week, ps.day, totalSets]);
+    const avg = rirNum ? (rirSum / rirNum).toFixed(1) : "-";
+    return { volume: Math.round(vol), avgRir: avg };
+  }, [day, ps.progress, level, ps.week, ps.day]);
 
   if (!day) {
     return (
@@ -627,7 +611,7 @@ function ProgramsTab({ data, setData, ps, setPs }) {
 
       <StatsRow
         volume={dayStats.volume}
-        effectiveness={dayStats.effectiveness}
+        avgRir={dayStats.avgRir}
         timeText={timeText}
         started={started}
         paused={paused}
@@ -1054,27 +1038,8 @@ export default function R7Tracker() {
     if (!data.profile?.mode || !data.profile?.level || !data.profile?.start) setShowOB(true);
   }, []);
 
-  const efficiency = useMemo(() => {
-    const progress = ps.progress || {};
-    let totalSets = 0, completed = 0, scoreSum = 0;
-    for (const key in progress) {
-      const [lvl, w, d, ex] = key.split(".");
-      const exObj = PROGRAMS[lvl]?.weeks?.[Number(w)]?.days?.[Number(d)]?.exercises?.[Number(ex)];
-      const planned = exObj?.workSets || 0;
-      totalSets += planned;
-      (progress[key]?.sets || []).forEach(r => {
-        if (r?.done) {
-          const rir = Number(r?.rir ?? 4);
-          const intensity = Math.max(0, (4 - rir) / 4);
-          scoreSum += intensity;
-          completed += 1;
-        }
-      });
-    }
-    const completion = totalSets ? completed / totalSets : 0;
-    const avgIntensity = completed ? scoreSum / completed : 0;
-    return Math.round(100 * completion * avgIntensity) || 0;
-  }, [ps.progress]);
+  const completedDays = useMemo(() => data.plan.filter((d) => d.status).length, [data.plan]);
+  const adherence = useMemo(() => Math.round((completedDays / data.plan.length) * 100) || 0, [completedDays, data.plan.length]);
 
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
@@ -1142,7 +1107,7 @@ export default function R7Tracker() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
- <Pill className="bg-white/70">Эффективность: <b className="ml-1">{efficiency}%</b></Pill>
+          <Pill className="bg-white/70">Приверженность: <b className="ml-1">{adherence}%</b></Pill>
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
@@ -1169,7 +1134,7 @@ export default function R7Tracker() {
         </nav>
       </header>
 
-      {tab === "programs" && <ProgramsTab data={data} setData={setData} ps={ps} setPs={setPs} />}
+      {tab === "programs" && <ProgramsTab data={data} setData={setData} />}
 
       {tab === "plan" && (
         <Section title="План на 30 дней" right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}>
