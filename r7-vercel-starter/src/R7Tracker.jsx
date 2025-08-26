@@ -414,8 +414,7 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
 }
 
 /* ===================== Programs tab ===================== */
-function ProgramsTab({ data, setData }) {
-  const [ps, setPs] = useProgramsState();
+function ProgramsTab({ data, setData, ps, setPs }) {
   const level = ps.level;
   const prog = PROGRAMS[level] || { weeks: [] };
   const week = prog.weeks[ps.week] || { days: [] };
@@ -1055,8 +1054,27 @@ export default function R7Tracker() {
     if (!data.profile?.mode || !data.profile?.level || !data.profile?.start) setShowOB(true);
   }, []);
 
-  const completedDays = useMemo(() => data.plan.filter((d) => d.status).length, [data.plan]);
-  const adherence = useMemo(() => Math.round((completedDays / data.plan.length) * 100) || 0, [completedDays, data.plan.length]);
+  const efficiency = useMemo(() => {
+    const progress = ps.progress || {};
+    let totalSets = 0, completed = 0, scoreSum = 0;
+    for (const key in progress) {
+      const [lvl, w, d, ex] = key.split(".");
+      const exObj = PROGRAMS[lvl]?.weeks?.[Number(w)]?.days?.[Number(d)]?.exercises?.[Number(ex)];
+      const planned = exObj?.workSets || 0;
+      totalSets += planned;
+      (progress[key]?.sets || []).forEach(r => {
+        if (r?.done) {
+          const rir = Number(r?.rir ?? 4);
+          const intensity = Math.max(0, (4 - rir) / 4);
+          scoreSum += intensity;
+          completed += 1;
+        }
+      });
+    }
+    const completion = totalSets ? completed / totalSets : 0;
+    const avgIntensity = completed ? scoreSum / completed : 0;
+    return Math.round(100 * completion * avgIntensity) || 0;
+  }, [ps.progress]);
 
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
@@ -1124,7 +1142,7 @@ export default function R7Tracker() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Pill className="bg-white/70">Приверженность: <b className="ml-1">{adherence}%</b></Pill>
+ <Pill className="bg-white/70">Эффективность: <b className="ml-1">{efficiency}%</b></Pill>
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">Streak: {streakRow}</div>
         </div>
 
@@ -1151,7 +1169,7 @@ export default function R7Tracker() {
         </nav>
       </header>
 
-      {tab === "programs" && <ProgramsTab data={data} setData={setData} />}
+      {tab === "programs" && <ProgramsTab data={data} setData={setData} ps={ps} setPs={setPs} />}
 
       {tab === "plan" && (
         <Section title="План на 30 дней" right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}>
