@@ -346,7 +346,6 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
           <div className="text-sm text-zinc-600">Объём</div>
           <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
         </Card>
-        
       <div className="flex items-start justify-between">
             <div className="text-sm text-zinc-600">Эффективность</div>
             <button
@@ -362,7 +361,6 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
             </button>
           </div>
           <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
-        </Card>
         </Card>
       </div>
 
