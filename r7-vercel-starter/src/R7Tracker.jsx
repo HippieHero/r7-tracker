@@ -338,21 +338,27 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
       {children}
     </div>
   );
+
   return (
     <div className="mt-2">
-   {/* 1) Объём и эффективность в одну линию */}
+      {/* 1) Объём и эффективность в одну линию */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <div className="text-sm text-zinc-600">Объём</div>
-          <div className="mt-0.5 text-xl font-semibold">{volume} <span className="text-base font-normal text-zinc-600">кг</span></div>
+          <div className="mt-0.5 text-xl font-semibold">
+            {volume} <span className="text-base font-normal text-zinc-600">кг</span>
+          </div>
         </Card>
-      <div className="flex items-start justify-between">
+
+        {/* ВТОРАЯ КОЛОНКА должна быть внутри Card */}
+        <Card>
+          <div className="flex items-start justify-between">
             <div className="text-sm text-zinc-600">Эффективность</div>
             <button
               className="ml-2 h-5 w-5 rounded-full border border-zinc-300 text-xs text-zinc-600"
               onClick={() =>
                 alert(
-                  "Эффективность учитывает, сколько подходов выполнено и насколько они были тяжёлыми. Рассчитывается как (выполнение × средняя интенсивность) × 100 %."
+                  "Эффективность учитывает, сколько подходов выполнено и насколько они были тяжёлыми. Рассчитывается как (выполнение × средняя интенсивность) × 100 %."
                 )
               }
               aria-label="Что такое эффективность?"
@@ -360,7 +366,9 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
               ?
             </button>
           </div>
-          <div className="mt-0.5 text-xl font-semibold">{effectiveness != null ? `${effectiveness} %` : "—"}</div>
+          <div className="mt-0.5 text-xl font-semibold">
+            {effectiveness != null ? `${effectiveness} %` : "—"}
+          </div>
         </Card>
       </div>
 
@@ -369,21 +377,32 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
         <Card>
           <div className="text-sm text-zinc-600">Время</div>
           <div className="mt-0.5 font-mono text-xl tabular-nums">{timeText || "—"}</div>
+
           {!started && (
             <button className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onStart}>
               Старт тренировки
             </button>
           )}
+
           {started && !paused && (
             <div className="mt-2 flex gap-2">
-              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onPause}>Пауза</button>
-              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>Сброс</button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onPause}>
+                Пауза
+              </button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>
+                Сброс
+              </button>
             </div>
           )}
+
           {started && paused && (
             <div className="mt-2 flex gap-2">
-              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onResume}>Продолжить</button>
-              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>Сброс</button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onResume}>
+                Продолжить
+              </button>
+              <button className="w-1/2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm" onClick={onReset}>
+                Сброс
+              </button>
             </div>
           )}
         </Card>
@@ -391,6 +410,7 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
     </div>
   );
 }
+
 
 /* ===================== Controls ===================== */
 function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
