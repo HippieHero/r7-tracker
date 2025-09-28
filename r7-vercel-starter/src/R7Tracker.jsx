@@ -28,6 +28,57 @@ const PROGRAM_LEVEL_LABELS = {
   P: "Pro",
 };
 
+const MS_IN_DAY = 24 * 60 * 60 * 1000;
+
+const parseISODateToUTC = (value) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const datePart = trimmed.includes("T") ? trimmed.slice(0, 10) : trimmed;
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(datePart);
+  if (!match) return null;
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const ms = Date.UTC(year, month - 1, day);
+  const check = new Date(ms);
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return ms;
+};
+
+const planEntryDateMs = (entry) => {
+  if (!entry) return null;
+  const direct = parseISODateToUTC(entry.date);
+  if (direct != null) return direct;
+  if (typeof entry.completedAt === "string" && entry.completedAt) {
+    const fallback = parseISODateToUTC(entry.completedAt);
+    if (fallback != null) return fallback;
+  }
+  return null;
+};
+
+const fallbackPlanDayNumber = (entry, index) => {
+  const numeric = Number(entry?.day);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : index + 1;
+};
+
+const computePlanCalendarDayNumber = (entry, fallbackDay, planStartMs) => {
+  const entryMs = planEntryDateMs(entry);
+  if (entryMs == null || planStartMs == null) return fallbackDay;
+  const diff = Math.round((entryMs - planStartMs) / MS_IN_DAY);
+  if (!Number.isFinite(diff)) return fallbackDay;
+  const computed = diff + 1;
+  return computed >= 1 ? computed : fallbackDay;
+};
+
 export default function R7Tracker() {
   const [data, setData] = usePersistedState(STORAGE_KEY, makeInitialData());
   const [tab, setTab] = useState("programs");
@@ -87,18 +138,35 @@ export default function R7Tracker() {
     [completedDays, data.plan.length]
   );
 
+const planStartMs = useMemo(() => {
+    const startMs = parseISODateToUTC(data?.profile?.start);
+    if (startMs != null) return startMs;
+    if (!Array.isArray(data?.plan)) return null;
+    let earliest = null;
+    for (const entry of data.plan) {
+      const entryMs = planEntryDateMs(entry);
+      if (entryMs != null && (earliest == null || entryMs < earliest)) {
+        earliest = entryMs;
+      }
+    }
+    return earliest;
+  }, [data?.plan, data?.profile?.start]);
+  
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
     <div className="inline-flex items-center gap-1 align-middle">
-      {last7.map((d, i) => (
-        <span
-          key={i}
-          className={`inline-block h-3 w-3 rounded-full ${
-             d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
-          }`}
-          title={`День ${d.day}: ${d.completedAt ? "✓" : "—"}`}
-        />
-      ))}
+ {last7.map((d, i) => {
+        const fallbackDay = fallbackPlanDayNumber(d, i);
+        const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
+        return (
+          <span
+            key={i}
+            className={`inline-block h-3 w-3 rounded-full ${
+              d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
+            }`}
+            title={`День ${calendarDay}: ${d.completedAt ? "✓" : "—"}`}
+          />
+        );
     </div>
   );
 
@@ -377,8 +445,10 @@ const formatDuration = (ms) => {
               const dayName =
                 (typeof d.programDayName === "string" && d.programDayName) ||
                 (Number.isFinite(d.programDayIndex) ? `День ${d.programDayIndex + 1}` : "");
-              const metaParts = [levelName, weekName, dayName].filter(Boolean);    
-          return (
+              const metaParts = [levelName, weekName, dayName].filter(Boolean);
+              const fallbackDay = fallbackPlanDayNumber(d, i);
+              const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
+              return (
                 <div
                   key={i}
                   className="flex flex-col gap-3 rounded-xl border border-zinc-300 bg-white p-3"
@@ -386,7 +456,7 @@ const formatDuration = (ms) => {
                   <div className="flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
+                        <div className="mb-1 text-sm text-zinc-500">День {calendarDay}</div>
                         <div className="truncate font-medium">{d.title}</div>
                         {metaParts.length > 0 && (
                           <div className="mt-0.5 text-xs text-zinc-500">
