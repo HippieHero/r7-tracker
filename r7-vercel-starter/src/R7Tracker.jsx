@@ -22,6 +22,12 @@ import { Section, Pill, ActionsMenu } from "./tracker/ui/Primitives";
 import ProgramsTab from "./tracker/features/ProgramsTab.jsx";
 import MeasuresTab from "./tracker/features/MeasuresTab.jsx";
 
+const PROGRAM_LEVEL_LABELS = {
+  S: "Start",
+  M: "Medium",
+  P: "Pro",
+};
+
 export default function R7Tracker() {
   const [data, setData] = usePersistedState(STORAGE_KEY, makeInitialData());
   const [tab, setTab] = useState("programs");
@@ -29,11 +35,32 @@ export default function R7Tracker() {
   const inTG = isTelegramWebView();
   const [showOB, setShowOB] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
     setData((prev) => {
       if (!prev || !Array.isArray(prev.plan)) return prev;
-      const normalized = prev.plan.map((item, idx) => ensurePlanEntryDefaults(item, idx));
-      const changed = normalized.some((item, idx) => item !== prev.plan[idx]);
+      let changed = false;
+      const normalized = prev.plan.map((item, idx) => {
+        let next = ensurePlanEntryDefaults(item, idx);
+        if (next !== item) changed = true;
+
+        if (next.status && !next.completedAt) {
+          const hasDate = typeof next.date === "string" && next.date.length >= 8;
+          let fallback = new Date().toISOString();
+          if (hasDate) {
+            const parsed = new Date(`${next.date}T00:00:00`);
+            if (!Number.isNaN(parsed.getTime())) {
+              fallback = parsed.toISOString();
+            }
+          }
+          next = { ...next, completedAt: fallback, status: true };
+          changed = true;
+        } else if (next.status !== Boolean(next.completedAt)) {
+          next = { ...next, status: Boolean(next.completedAt) };
+          changed = true;
+        }
+
+        return next;
+      });
       return changed ? { ...prev, plan: normalized } : prev;
     });
   }, [setData]);
@@ -67,9 +94,9 @@ export default function R7Tracker() {
         <span
           key={i}
           className={`inline-block h-3 w-3 rounded-full ${
-            d.completedAt || d.status ? "bg-emerald-500" : "bg-zinc-300"
+             d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
           }`}
-          title={`День ${d.day}: ${d.completedAt || d.status ? "✓" : "—"}`}
+          title={`День ${d.day}: ${d.completedAt ? "✓" : "—"}`}
         />
       ))}
     </div>
@@ -156,12 +183,39 @@ const formatDuration = (ms) => {
         }
         const workoutSets = Array.isArray(payload.workoutSets) ? payload.workoutSets : [];
         const completedAt = payload.completedAt || new Date().toISOString();
+        const level = payload.level ?? entry.programLevel ?? null;
+        const levelName = payload.levelName ?? entry.programLevelName ?? "";
+        const weekIndex = Number.isFinite(payload.weekIndex)
+          ? payload.weekIndex
+          : Number.isFinite(entry.programWeekIndex)
+          ? entry.programWeekIndex
+          : null;
+        const weekName = payload.weekName ?? entry.programWeekName ?? "";
+        const dayIndex = Number.isFinite(payload.dayIndex)
+          ? payload.dayIndex
+          : Number.isFinite(entry.programDayIndex)
+          ? entry.programDayIndex
+          : null;
+        const dayName = payload.dayTitle ?? entry.programDayName ?? "";
+        const planDate =
+          entry.date && entry.date !== ""
+            ? entry.date
+            : completedAt.slice(0, 10);
+        const title = dayName || entry.title;
         plan[idx] = {
           ...entry,
           status: true,
           completedAt,
           summary,
           workoutSets,
+          date: planDate,
+          title,
+          programLevel: level,
+          programLevelName: levelName,
+          programWeekIndex: weekIndex,
+          programWeekName: weekName,
+          programDayIndex: dayIndex,
+          programDayName: dayName,
         };
         return { ...prev, plan };
       });
@@ -298,7 +352,7 @@ const formatDuration = (ms) => {
       </header>
 
       {/* Вкладка «Программы» */}
-      {tab === "programs" && <ProgramsTab onCompleteDay={handleCompleteDay} />}
+       {tab === "programs" && <ProgramsTab onCompleteDay={handleCompleteDay} />}
 
       {/* Вкладка «План» */}
       {tab === "plan" && (
