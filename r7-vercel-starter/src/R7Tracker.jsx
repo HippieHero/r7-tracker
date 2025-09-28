@@ -365,6 +365,9 @@ const formatDuration = (ms) => {
               const summary = { ...createEmptySummary(), ...(d.summary || {}) };
               const completedLabel = formatCompletedAt(d.completedAt);
               const isCompleted = Boolean(d.completedAt || d.status);
+          const focusText = typeof d.focus === "string" ? d.focus.trim() : "";
+              const durationText = typeof d.duration === "string" ? d.duration.trim() : "";
+              const prepText = typeof d.prep === "string" ? d.prep.trim() : "";
               return (
                 <div
                   key={i}
@@ -375,11 +378,13 @@ const formatDuration = (ms) => {
                       <div className="min-w-0">
                         <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
                         <div className="truncate font-medium">{d.title}</div>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
-                          <Pill>{d.focus}</Pill>
-                          <Pill>⏱ {d.duration} мин</Pill>
-                          <Pill>{d.prep}</Pill>
-                        </div>
+                          {(focusText || durationText || prepText) && (
+                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
+                            {focusText && <Pill>{focusText}</Pill>}
+                            {durationText && <Pill>⏱ {durationText} мин</Pill>}
+                            {prepText && <Pill>{prepText}</Pill>}
+                          </div>
+                        )}
                       </div>
                       <div className="flex w-40 flex-col items-end gap-2">
                         <input
