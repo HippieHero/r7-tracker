@@ -17,6 +17,7 @@ import {
 
 // Базовые UI-примитивы страницы
 import { Section, Pill, ActionsMenu } from "./tracker/ui/Primitives";
+import PlanCalendar from "./tracker/features/PlanCalendar.jsx";
 
 // Вкладки (features)
 import ProgramsTab from "./tracker/features/ProgramsTab.jsx";
@@ -85,7 +86,8 @@ export default function R7Tracker() {
   const { supported: canInstall } = usePwaInstall(); // оставил, если есть кнопка установки
   const inTG = isTelegramWebView();
   const [showOB, setShowOB] = useState(false);
-
+ const [showPlanCalendar, setShowPlanCalendar] = useState(false);
+  
  useEffect(() => {
     setData((prev) => {
       if (!prev || !Array.isArray(prev.plan)) return prev;
@@ -138,7 +140,7 @@ export default function R7Tracker() {
     [completedDays, data.plan.length]
   );
 
-const planStartMs = useMemo(() => {
+  const planStartMs = useMemo(() => {
     const startMs = parseISODateToUTC(data?.profile?.start);
     if (startMs != null) return startMs;
     if (!Array.isArray(data?.plan)) return null;
@@ -151,16 +153,73 @@ const planStartMs = useMemo(() => {
     }
     return earliest;
   }, [data?.plan, data?.profile?.start]);
+
+const planCalendarDays = useMemo(() => {
+    if (!Array.isArray(data?.plan)) return [];
+    return data.plan.map((entry, index) => {
+      const fallbackDay = fallbackPlanDayNumber(entry, index);
+      const calendarDay = computePlanCalendarDayNumber(entry, fallbackDay, planStartMs);
+      return {
+        fallbackDay,
+        calendarDay,
+        completed: Boolean(entry?.completedAt || entry?.status),
+        entryDateMs: planEntryDateMs(entry),
+        title: typeof entry?.title === "string" ? entry.title : "",
+      };
+    });
+  }, [data?.plan, planStartMs]);
+
+  useEffect(() => {
+    setData((prev) => {
+      if (!prev || !Array.isArray(prev.plan)) return prev;
+
+      const startMsFromProfile = parseISODateToUTC(prev?.profile?.start);
+      let normalizedStart = startMsFromProfile ?? null;
+      if (normalizedStart == null) {
+        for (const entry of prev.plan) {
+          const entryMs = planEntryDateMs(entry);
+          if (entryMs != null && (normalizedStart == null || entryMs < normalizedStart)) {
+            normalizedStart = entryMs;
+          }
+        }
+      }
+
+      let changed = false;
+      const normalizedPlan = prev.plan.map((item, idx) => {
+        const defaultsApplied = ensurePlanEntryDefaults(item, idx);
+        const fallbackDay = fallbackPlanDayNumber(defaultsApplied, idx);
+        const calendarDay = computePlanCalendarDayNumber(
+          defaultsApplied,
+          fallbackDay,
+          normalizedStart
+        );
+
+        let nextEntry = defaultsApplied;
+        if (calendarDay !== defaultsApplied.day) {
+          nextEntry = { ...defaultsApplied, day: calendarDay };
+        }
+
+        if (nextEntry !== item) {
+          changed = true;
+        }
+        return nextEntry;
+      });
+
+      if (!changed) return prev;
+      return { ...prev, plan: normalizedPlan };
+    });
+  }, [setData, data?.profile?.start, data?.plan]);
   
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
   <div className="inline-flex items-center gap-1 align-middle">
-    {last7.map((d, i) => {
-      const fallbackDay = fallbackPlanDayNumber(d, i);
-      const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
-      return (
-        <span
-          key={i}
+      {last7.map((d, i) => {
+        const meta = planCalendarDays[i] || {};
+        const fallbackDay = meta.fallbackDay ?? fallbackPlanDayNumber(d, i);
+        const calendarDay = meta.calendarDay ?? fallbackDay;
+        return (
+          <span
+            key={i}
           className={`inline-block h-3 w-3 rounded-full ${
             d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
           }`}
@@ -426,15 +485,26 @@ const formatDuration = (ms) => {
       {/* Вкладка «План» */}
       {tab === "plan" && (
         <Section
-          title="План на 30 дней"
-          right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}
+          title={`План на ${data.profile?.days || data.plan.length} дней`}
+          right={
+            <div className="flex items-center gap-2 text-sm text-zinc-500">
+              <span className="hidden sm:inline">Отмечайте выполненные дни</span>
+              <button
+                type="button"
+                onClick={() => setShowPlanCalendar(true)}
+                className="rounded-full border border-zinc-300 px-3 py-1 text-sm text-zinc-600 transition hover:border-zinc-400 hover:text-zinc-800"
+              >
+                Календарь
+              </button>
+            </div>
+          }
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {data.plan.map((d, i) => {
               const summary = { ...createEmptySummary(), ...(d.summary || {}) };
               const completedLabel = formatCompletedAt(d.completedAt);
               const isCompleted = Boolean(d.completedAt || d.status);
-          const focusText = typeof d.focus === "string" ? d.focus.trim() : "";
+              const focusText = typeof d.focus === "string" ? d.focus.trim() : "";
               const durationText = typeof d.duration === "string" ? d.duration.trim() : "";
               const prepText = typeof d.prep === "string" ? d.prep.trim() : "";
              const levelName =
@@ -447,8 +517,9 @@ const formatDuration = (ms) => {
                 (typeof d.programDayName === "string" && d.programDayName) ||
                 (Number.isFinite(d.programDayIndex) ? `День ${d.programDayIndex + 1}` : "");
               const metaParts = [levelName, weekName, dayName].filter(Boolean);
-              const fallbackDay = fallbackPlanDayNumber(d, i);
-              const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
+              const meta = planCalendarDays[i] || {};
+              const fallbackDay = meta.fallbackDay ?? fallbackPlanDayNumber(d, i);
+              const calendarDay = meta.calendarDay ?? fallbackDay;
               return (
                 <div
                   key={i}
@@ -481,7 +552,19 @@ const formatDuration = (ms) => {
                             const value = e.target.value;
                             setData((prev) => {
                               const plan = [...prev.plan];
-                              plan[i] = { ...plan[i], date: value };
+                              const current = ensurePlanEntryDefaults(plan[i], i);
+                              let nextEntry = current;
+                              if (current.date !== value) {
+                                nextEntry = { ...current, date: value };
+                              } else if (current !== plan[i]) {
+                                nextEntry = current;
+                              }
+
+                              if (nextEntry === plan[i]) {
+                                return prev;
+                              }
+
+                              plan[i] = nextEntry;
                               return { ...prev, plan };
                             });
                           }}
@@ -489,6 +572,9 @@ const formatDuration = (ms) => {
                         <button
                           onClick={() => {
                             setData((prev) => {
+                               if (!prev || !Array.isArray(prev.plan) || !prev.plan[i]) {
+                                return prev;
+                              }
                               const plan = [...prev.plan];
                               const current = ensurePlanEntryDefaults(plan[i], i);
                               const nextCompleted = !(current.completedAt || current.status);
@@ -620,6 +706,15 @@ const formatDuration = (ms) => {
         />
       )}
 
+{showPlanCalendar && (
+        <PlanCalendar
+          plan={data.plan}
+          profile={data.profile}
+          calendarMeta={planCalendarDays}
+          onClose={() => setShowPlanCalendar(false)}
+        />
+      )}
+      
       <footer className="mt-8 text-center text-sm text-zinc-500">
         R7 • Данные хранятся локально (localStorage). Для переноса используйте Экспорт/Импорт.
       </footer>
