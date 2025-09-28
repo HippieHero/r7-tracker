@@ -141,13 +141,13 @@ export const PROGRAMS = {
 
 // План 30д
 const dayTemplate = [
-  { name: "Тренировка A (низ/ягодицы)",     focus: "Низ",            duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
-  { name: "Отдых / мобилити",               focus: "Восстановление", duration: "15–25", prep: "Прогулка, растяжка" },
-  { name: "Тренировка B (верх/спина+грудь)", focus: "Верх",           duration: "35–50", prep: "5–8 мин разогрев/мобилити" },
-  { name: "Отдых",                           focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
-  { name: "Тренировка C (смешанная/кор)",    focus: "Смешанная",      duration: "35–45", prep: "Мобилити + разогрев" },
-  { name: "Зона-2 / прогулка",               focus: "Кардио",         duration: "20–30", prep: "Пульс зона-2" },
-  { name: "Отдых",                           focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
+ { name: "Тренировка A (низ/ягодицы)" },
+  { name: "Отдых / мобилити" },
+  { name: "Тренировка B (верх/спина+грудь)" },
+  { name: "Отдых" },
+  { name: "Тренировка C (смешанная/кор)" },
+  { name: "Зона-2 / прогулка" },
+  { name: "Отдых" },
 ];
 const SUMMARY_TEMPLATE = { volume: 0, effectiveness: null, duration: 0, exercises: 0 };
 export const createEmptySummary = () => ({ ...SUMMARY_TEMPLATE });
@@ -171,15 +171,15 @@ export function ensurePlanEntryDefaults(entry = {}, index = 0) {
     ensureClone();
     next.title = "";
   }
-  if (next.focus == null) {
+  if (next.focus !== "") {
     ensureClone();
     next.focus = "";
   }
-  if (next.duration == null) {
+ if (next.duration !== "") {
     ensureClone();
     next.duration = "";
   }
-  if (next.prep == null) {
+ if (next.prep !== "") {
     ensureClone();
     next.prep = "";
   }
@@ -229,9 +229,6 @@ export const makePlan = (len = DEFAULT_DAYS) =>
       day: i + 1,
       date: "",
       title: t.name,
-      focus: t.focus,
-      duration: t.duration,
-      prep: t.prep,
       status: false,
       note: "",
       completedAt: null,
