@@ -170,6 +170,39 @@ export default function R7Tracker() {
           <Pill className="bg-white/70">
             Приверженность: <b className="ml-1">{adherence}%</b>
           </Pill>
+                    <Pill className="bg-white/70">
+            Δ талия:
+            <span
+              className={`ml-1 font-semibold ${deltaClass(
+                lastM.waist,
+                baseM.waist
+              )}`}
+            >
+              {deltaText(lastM.waist, baseM.waist, "см")}
+            </span>
+          </Pill>
+          <Pill className="bg-white/70">
+            Δ бёдра:
+            <span
+              className={`ml-1 font-semibold ${deltaClass(
+                lastM.hips,
+                baseM.hips
+              )}`}
+            >
+              {deltaText(lastM.hips, baseM.hips, "см")}
+            </span>
+          </Pill>
+          <Pill className="bg-white/70">
+            Δ вес:
+            <span
+              className={`ml-1 font-semibold ${deltaClass(
+                lastM.weight,
+                baseM.weight
+              )}`}
+            >
+              {deltaText(lastM.weight, baseM.weight, "кг")}
+            </span>
+          </Pill>
           <div className="rounded-full border border-zinc-300 bg-white/70 px-2 py-1 text-xs text-zinc-600">
             Streak: {streakRow}
           </div>
@@ -315,6 +348,7 @@ function Onboarding({ initial, onClose }) {
             Имя
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+               placeholder="Ваше имя"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
