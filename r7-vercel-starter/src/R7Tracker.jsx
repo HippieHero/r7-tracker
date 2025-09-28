@@ -368,7 +368,17 @@ const formatDuration = (ms) => {
           const focusText = typeof d.focus === "string" ? d.focus.trim() : "";
               const durationText = typeof d.duration === "string" ? d.duration.trim() : "";
               const prepText = typeof d.prep === "string" ? d.prep.trim() : "";
-              return (
+             const levelName =
+                (typeof d.programLevelName === "string" && d.programLevelName) ||
+                (d.programLevel ? PROGRAM_LEVEL_LABELS[d.programLevel] || d.programLevel : "");
+              const weekName =
+                (typeof d.programWeekName === "string" && d.programWeekName) ||
+                (Number.isFinite(d.programWeekIndex) ? `Неделя ${d.programWeekIndex + 1}` : "");
+              const dayName =
+                (typeof d.programDayName === "string" && d.programDayName) ||
+                (Number.isFinite(d.programDayIndex) ? `День ${d.programDayIndex + 1}` : "");
+              const metaParts = [levelName, weekName, dayName].filter(Boolean);    
+          return (
                 <div
                   key={i}
                   className="flex flex-col gap-3 rounded-xl border border-zinc-300 bg-white p-3"
@@ -378,7 +388,12 @@ const formatDuration = (ms) => {
                       <div className="min-w-0">
                         <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
                         <div className="truncate font-medium">{d.title}</div>
-                          {(focusText || durationText || prepText) && (
+                        {metaParts.length > 0 && (
+                          <div className="mt-0.5 text-xs text-zinc-500">
+                            {metaParts.join(" • ")}
+                          </div>
+                        )} 
+                        {(focusText || durationText || prepText) && (
                           <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
                             {focusText && <Pill>{focusText}</Pill>}
                             {durationText && <Pill>⏱ {durationText} мин</Pill>}
