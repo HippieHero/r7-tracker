@@ -1,11 +1,7 @@
-import React, { useMemo, useEffect, useState } from "react";
-import {
-  STORAGE_KEY, makeInitialData, applyParamsToData, usePersistedState,
-  buildPersonalLink, usePwaInstall, isTelegramWebView, N
-} from "./core";
-import { Section, Pill, ActionsMenu } from "./ui/Primitives";
-import ProgramsTab from "./features/ProgramsTab";
-import MeasuresTab from "./features/MeasuresTab";
+import { cn, clamp, round } from './tracker/core';
+import { Bar, Badge, Section, H2 } from './tracker/ui/Primitives';
+import ProgramsTab from './tracker/features/ProgramsTab.jsx';
+import MeasuresTab from './tracker/features/MeasuresTab.jsx';
 
 export default function R7Tracker() {
   const [data, setData] = usePersistedState(STORAGE_KEY, makeInitialData());
