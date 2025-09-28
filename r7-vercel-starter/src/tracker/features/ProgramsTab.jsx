@@ -23,21 +23,35 @@ function MetaBar({ ex, exIdx, addSet, removeLastSet }){
   const intensity = shortIntensity(ex.intensity);
   const eq = Array.isArray(ex.equipment) ? ex.equipment.join(", ") : "";
   return (
-    <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white/60 px-2 py-1.5">
-      <div className="min-w-0 flex flex-wrap items-center gap-1.5">
-        <TinyPill>🔁 {setsReps}</TinyPill>
-        {rest && <TinyPill>⏱ {rest}</TinyPill>}
-        {intensity && <TinyPill>⚡ {intensity}</TinyPill>}
-        {ex.warmup && <TinyPill>🔥 Разминка</TinyPill>}
-        {eq && (
-          <TinyPill className="max-w-[80vw] sm:max-w-[560px]">
-            🎒 <span className="truncate" title={eq}>{eq}</span>
-          </TinyPill>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <button onClick={()=>addSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="+ подход">+</button>
-        <button onClick={()=>removeLastSet(exIdx)} className="h-7 w-7 rounded-full border border-zinc-300 text-sm leading-none" title="– убрать">–</button>
+   <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 bg-white/60">
+      <div className="flex flex-col divide-y divide-zinc-200 sm:flex-row sm:items-stretch sm:divide-x sm:divide-y-0">
+        <div className="min-w-0 flex flex-1 flex-wrap items-center gap-1.5 px-2 py-1.5">
+          <TinyPill>🔁 {setsReps}</TinyPill>
+          {rest && <TinyPill>⏱ {rest}</TinyPill>}
+          {intensity && <TinyPill>⚡ {intensity}</TinyPill>}
+          {ex.warmup && <TinyPill>🔥 Разминка</TinyPill>}
+          {eq && (
+            <TinyPill className="max-w-[80vw] sm:max-w-[560px]">
+              🎒 <span className="truncate" title={eq}>{eq}</span>
+            </TinyPill>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center justify-center gap-1.5 px-2 py-1.5">
+          <button
+            onClick={()=>addSet(exIdx)}
+            className="h-8 w-8 rounded-full border border-zinc-300 text-base leading-none"
+            title="+ подход"
+          >
+            +
+          </button>
+          <button
+            onClick={()=>removeLastSet(exIdx)}
+            className="h-8 w-8 rounded-full border border-zinc-300 text-base leading-none"
+            title="– убрать"
+          >
+            –
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -49,7 +63,11 @@ const InputMini = React.forwardRef(function InputMini({ className="", onEnter, .
       ref={ref}
       inputMode="decimal"
       pattern="[0-9.,]*"
-      className={["h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-xs", className].join(" ")}
+      className={[
+        "h-9 w-full rounded-md border border-zinc-300 px-2 text-center text-base",
+        className,
+      ].join(" ")}
+      style={{ fontSize: "16px" }}
       onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
       {...props}
     />
@@ -410,13 +428,17 @@ export default function ProgramsTab() {
                       <tr key={si} className="border-b">
                         <td className="px-2 py-1">{si+1}</td>
                         <td className="px-2 py-1">
-                          <input className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
+                           <input
+                            className="h-9 w-28 rounded border border-zinc-300 px-2 text-base"
+                            style={{ fontSize: "16px" }}
                             value={row.reps || ""} onChange={(e)=>setCell(exIdx, si, "reps", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
                             placeholder={ex.reps} inputMode="numeric" />
                         </td>
                         <td className="px-2 py-1">
-                          <input id={`kg-${idBase}`} className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
+                           <input id={`kg-${idBase}`}
+                            className="h-9 w-28 rounded border border-zinc-300 px-2 text-base"
+                            style={{ fontSize: "16px" }}
                             value={row.weight || ""} onChange={(e)=>setCell(exIdx, si, "weight", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
                             placeholder="кг" inputMode="decimal" />
@@ -446,14 +468,6 @@ export default function ProgramsTab() {
                 </tbody>
               </table>
             </div>
-
-            {exIdx < day.exercises.length - 1 && (
-              <button className="mt-3 w-full rounded-md border border-zinc-300 py-2 text-sm"
-                onClick={()=>document.getElementById(`ex-${exIdx+1}`)?.scrollIntoView({ behavior:"smooth", block:"start" })}>
-                Следующее упражнение ↓
-              </button>
-            )}
-
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <button className="rounded-md border border-zinc-300 px-2 py-1" onClick={()=>copyLast(exIdx)}>Как в прошлый раз</button>
               <button className="rounded-md border border-zinc-300 px-2 py-1" onClick={()=>{
