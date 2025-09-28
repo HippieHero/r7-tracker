@@ -151,7 +151,7 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
 }
 
 /* ===== Основная вкладка Программ ===== */
-export default function ProgramsTab() {
+export default function ProgramsTab({ onCompleteDay }) {
   const [ps, setPs] = useProgramsState();
   const level = ps.level;
   const prog = PROGRAMS[level] || { weeks: [] };
@@ -275,7 +275,44 @@ export default function ProgramsTab() {
     const effectiveness = Math.round(100 * completion * avgIntensity);
     return { volume: Math.round(vol), effectiveness };
   }, [day, ps.progress, level, ps.week, ps.day, totalSets]);
+const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
+  const planDayIndex = ps.week * 7 + ps.day;
 
+  const triggerCompleteDay = () => {
+    if (!day || !onCompleteDay) return;
+    if (totalSets > 0 && doneSets < totalSets) return;
+    const completedAt = new Date().toISOString();
+    const workoutSets = day.exercises.map((ex, exIdx) => {
+      const k = keyFor(level, ps.week, ps.day, exIdx);
+      const rows = ps.progress[k]?.sets || [];
+      return {
+        id: exId(level, ps.week, ps.day, ex),
+        name: ex.name,
+        muscle: ex.muscle,
+        sets: rows.map((r) => ({
+          reps: r?.reps || "",
+          weight: r?.weight || "",
+          rir: r?.rir ?? "",
+          done: !!r?.done,
+        })),
+      };
+    });
+    onCompleteDay({
+      level,
+      weekIndex: ps.week,
+      dayIndex: ps.day,
+      planDayIndex,
+      completedAt,
+      summary: {
+        volume: dayStats.volume,
+        effectiveness: dayStats.effectiveness,
+        duration: elapsed,
+        exercises: day.exercises.length,
+      },
+      workoutSets,
+    });
+    vibrate(25);
+  };
   if(!day){
     return (
       <Section title="Программы тренировок">
@@ -301,6 +338,17 @@ export default function ProgramsTab() {
           onResume={resumeWorkout}
           onReset={resetWorkout}
         />
+         {onCompleteDay && (
+          <button
+            className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
+              canCompleteDay ? "bg-emerald-600 text-white" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+            }`}
+            onClick={triggerCompleteDay}
+            disabled={!canCompleteDay}
+          >
+            Сохранить в план
+          </button>
+        )}
       </Section>
 
       <StickyInfoBar
