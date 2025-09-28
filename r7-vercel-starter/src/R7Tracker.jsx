@@ -154,21 +154,22 @@ const planStartMs = useMemo(() => {
   
   const last7 = data.plan.slice(0, 7);
   const streakRow = (
-    <div className="inline-flex items-center gap-1 align-middle">
- {last7.map((d, i) => {
-        const fallbackDay = fallbackPlanDayNumber(d, i);
-        const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
-        return (
-          <span
-            key={i}
-            className={`inline-block h-3 w-3 rounded-full ${
-              d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
-            }`}
-            title={`День ${calendarDay}: ${d.completedAt ? "✓" : "—"}`}
-          />
-        );
-    </div>
-  );
+  <div className="inline-flex items-center gap-1 align-middle">
+    {last7.map((d, i) => {
+      const fallbackDay = fallbackPlanDayNumber(d, i);
+      const calendarDay = computePlanCalendarDayNumber(d, fallbackDay, planStartMs);
+      return (
+        <span
+          key={i}
+          className={`inline-block h-3 w-3 rounded-full ${
+            d.completedAt ? "bg-emerald-500" : "bg-zinc-300"
+          }`}
+          title={`День ${calendarDay}: ${d.completedAt ? "✓" : "—"}`}
+        />
+      );
+    })}
+  </div>
+);
 
   const personalLink = buildPersonalLink({ profile: data.profile });
   const copyLink = async () => {
