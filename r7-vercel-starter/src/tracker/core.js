@@ -142,12 +142,8 @@ export const PROGRAMS = {
 // План 30д
 const PLAN_TEMPLATE = [
   { type: "workout", level: "S", dayIndex: 0 },
-  { type: "rest", title: "Отдых / мобилити" },
   { type: "workout", level: "S", dayIndex: 1 },
-  { type: "rest", title: "Отдых" },
   { type: "workout", level: "S", dayIndex: 2 },
-  { type: "rest", title: "Зона-2 / прогулка" },
-  { type: "rest", title: "Отдых" },
 ];
 const SUMMARY_TEMPLATE = { volume: 0, effectiveness: null, duration: 0, exercises: 0 };
 export const createEmptySummary = () => ({ ...SUMMARY_TEMPLATE });
