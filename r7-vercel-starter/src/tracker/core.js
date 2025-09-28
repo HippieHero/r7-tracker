@@ -149,11 +149,95 @@ const dayTemplate = [
   { name: "Зона-2 / прогулка",               focus: "Кардио",         duration: "20–30", prep: "Пульс зона-2" },
   { name: "Отдых",                           focus: "Восстановление", duration: "-",      prep: "Сон 7–9 ч" },
 ];
+const SUMMARY_TEMPLATE = { volume: 0, effectiveness: null, duration: 0, exercises: 0 };
+export const createEmptySummary = () => ({ ...SUMMARY_TEMPLATE });
 
+export function ensurePlanEntryDefaults(entry = {}, index = 0) {
+  const original = entry || {};
+  let next = original;
+  const ensureClone = () => {
+    if (next === original) next = { ...original };
+  };
+
+  if (next.day == null) {
+    ensureClone();
+    next.day = index + 1;
+  }
+  if (next.date == null) {
+    ensureClone();
+    next.date = "";
+  }
+  if (next.title == null) {
+    ensureClone();
+    next.title = "";
+  }
+  if (next.focus == null) {
+    ensureClone();
+    next.focus = "";
+  }
+  if (next.duration == null) {
+    ensureClone();
+    next.duration = "";
+  }
+  if (next.prep == null) {
+    ensureClone();
+    next.prep = "";
+  }
+  if (next.note == null) {
+    ensureClone();
+    next.note = "";
+  }
+
+  const summarySource = next.summary;
+  if (!summarySource || typeof summarySource !== "object") {
+    ensureClone();
+    next.summary = createEmptySummary();
+  } else {
+    const merged = { ...createEmptySummary(), ...summarySource };
+    const keys = Object.keys(SUMMARY_TEMPLATE);
+    const same = keys.every((k) => merged[k] === summarySource[k]);
+    if (!same) {
+      ensureClone();
+      next.summary = merged;
+    }
+  }
+
+  if (!Array.isArray(next.workoutSets)) {
+    ensureClone();
+    next.workoutSets = [];
+  }
+
+  if (next.completedAt === undefined) {
+    ensureClone();
+    next.completedAt = null;
+  }
+
+  if (next.status === undefined) {
+    ensureClone();
+    next.status = Boolean(next.completedAt);
+  } else if (next.completedAt && !next.status) {
+    ensureClone();
+    next.status = true;
+  }
+
+  return next;
+}
 export const makePlan = (len = DEFAULT_DAYS) =>
   Array.from({ length: len }).map((_, i) => {
     const t = dayTemplate[i % dayTemplate.length];
-    return { day: i + 1, date: "", title: t.name, focus: t.focus, duration: t.duration, prep: t.prep, status: false, note: "" };
+    return ensurePlanEntryDefaults({
+      day: i + 1,
+      date: "",
+      title: t.name,
+      focus: t.focus,
+      duration: t.duration,
+      prep: t.prep,
+      status: false,
+      note: "",
+      completedAt: null,
+      summary: createEmptySummary(),
+      workoutSets: [],
+    }, i);
   });
 
 export function makeInitialData() {
@@ -174,7 +258,9 @@ export function applyParamsToData(data) {
   if (q.mode && (q.mode === "home" || q.mode === "gym")) next.profile.mode = q.mode;
   if (q.level && ["S","M","P"].includes(q.level)) next.profile.level = q.level;
   next.profile.days = days;
+  if (!Array.isArray(next.plan)) next.plan = makePlan(days);
   if (next.plan.length !== days) next.plan = makePlan(days);
+  next.plan = next.plan.map((item, idx) => ensurePlanEntryDefaults(item, idx));
   next._appliedFromQuery = true;
   if (q.start) next.profile.start = q.start;
   return next;
