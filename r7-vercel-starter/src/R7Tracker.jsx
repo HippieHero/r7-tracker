@@ -1,5 +1,5 @@
 // src/R7Tracker.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 // ВАЖНО: всё из корневого ядра трекера
 import {
@@ -11,6 +11,8 @@ import {
   isTelegramWebView,
   N,
   buildPersonalLink,
+    ensurePlanEntryDefaults,
+  createEmptySummary,
 } from "./tracker/core";
 
 // Базовые UI-примитивы страницы
@@ -27,6 +29,15 @@ export default function R7Tracker() {
   const inTG = isTelegramWebView();
   const [showOB, setShowOB] = useState(false);
 
+  useEffect(() => {
+    setData((prev) => {
+      if (!prev || !Array.isArray(prev.plan)) return prev;
+      const normalized = prev.plan.map((item, idx) => ensurePlanEntryDefaults(item, idx));
+      const changed = normalized.some((item, idx) => item !== prev.plan[idx]);
+      return changed ? { ...prev, plan: normalized } : prev;
+    });
+  }, [setData]);
+
   // подхватываем параметры из URL один раз
   useEffect(() => {
     setData((prev) => applyParamsToData(prev));
@@ -40,7 +51,7 @@ export default function R7Tracker() {
   }, [data?.profile?.mode, data?.profile?.level, data?.profile?.start]);
 
   const completedDays = useMemo(
-    () => data.plan.filter((d) => d.status).length,
+     () => data.plan.filter((d) => d.completedAt || d.status).length,
     [data.plan]
   );
   const adherence = useMemo(
@@ -56,9 +67,9 @@ export default function R7Tracker() {
         <span
           key={i}
           className={`inline-block h-3 w-3 rounded-full ${
-            d.status ? "bg-emerald-500" : "bg-zinc-300"
+            d.completedAt || d.status ? "bg-emerald-500" : "bg-zinc-300"
           }`}
-          title={`День ${d.day}: ${d.status ? "✓" : "—"}`}
+          title={`День ${d.day}: ${d.completedAt || d.status ? "✓" : "—"}`}
         />
       ))}
     </div>
@@ -100,6 +111,64 @@ export default function R7Tracker() {
     return d > 0 ? "text-rose-600" : "text-emerald-600";
   };
 
+const formatDuration = (ms) => {
+    const totalMs = Number(ms || 0);
+    if (!Number.isFinite(totalMs) || totalMs <= 0) return "—";
+    const totalSec = Math.round(totalMs / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) {
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
+
+  const formatCompletedAt = (value) => {
+    if (!value) return null;
+    try {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      return date.toLocaleDateString("ru-RU");
+    } catch {
+      return null;
+    }
+  };
+
+  const handleCompleteDay = useCallback(
+    (payload) => {
+      if (!payload) return;
+      setData((prev) => {
+        if (!prev || !Array.isArray(prev.plan) || prev.plan.length === 0) return prev;
+        const idx = Math.min(
+          prev.plan.length - 1,
+          Math.max(0, payload.planDayIndex ?? payload.dayIndex ?? 0)
+        );
+        if (!prev.plan[idx]) return prev;
+        const plan = [...prev.plan];
+        const entry = ensurePlanEntryDefaults(plan[idx], idx);
+        const summaryDefaults = createEmptySummary();
+        const summaryPayload =
+          payload.summary && typeof payload.summary === "object" ? payload.summary : {};
+        const summary = { ...summaryDefaults, ...summaryPayload };
+        if (!summary.exercises && Array.isArray(payload.workoutSets)) {
+          summary.exercises = payload.workoutSets.length;
+        }
+        const workoutSets = Array.isArray(payload.workoutSets) ? payload.workoutSets : [];
+        const completedAt = payload.completedAt || new Date().toISOString();
+        plan[idx] = {
+          ...entry,
+          status: true,
+          completedAt,
+          summary,
+          workoutSets,
+        };
+        return { ...prev, plan };
+      });
+    },
+    [setData]
+  );
+  
   return (
     <div className="mx-auto max-w-6xl p-4 text-zinc-800">
       <header className="mb-6 flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-rose-100 to-indigo-100 p-5">
@@ -229,7 +298,7 @@ export default function R7Tracker() {
       </header>
 
       {/* Вкладка «Программы» */}
-      {tab === "programs" && <ProgramsTab />}
+      {tab === "programs" && <ProgramsTab onCompleteDay={handleCompleteDay} />}
 
       {/* Вкладка «План» */}
       {tab === "plan" && (
@@ -238,57 +307,154 @@ export default function R7Tracker() {
           right={<span className="text-sm text-zinc-500">Отмечайте выполненные дни</span>}
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {data.plan.map((d, i) => (
-              <div
-                key={i}
-                className="flex items-start justify-between gap-3 rounded-xl border border-zinc-300 bg-white p-3"
-              >
-                <div className="min-w-0">
-                  <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
-                  <div className="truncate font-medium">{d.title}</div>
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
-                    <Pill>{d.focus}</Pill>
-                    <Pill>⏱ {d.duration} мин</Pill>
-                    <Pill>{d.prep}</Pill>
+            {data.plan.map((d, i) => {
+              const summary = { ...createEmptySummary(), ...(d.summary || {}) };
+              const completedLabel = formatCompletedAt(d.completedAt);
+              const isCompleted = Boolean(d.completedAt || d.status);
+              return (
+                <div
+                  key={i}
+                  className="flex flex-col gap-3 rounded-xl border border-zinc-300 bg-white p-3"
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="mb-1 text-sm text-zinc-500">День {d.day}</div>
+                        <div className="truncate font-medium">{d.title}</div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-600">
+                          <Pill>{d.focus}</Pill>
+                          <Pill>⏱ {d.duration} мин</Pill>
+                          <Pill>{d.prep}</Pill>
+                        </div>
+                      </div>
+                      <div className="flex w-40 flex-col items-end gap-2">
+                        <input
+                          type="date"
+                          className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                          value={d.date}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setData((prev) => {
+                              const plan = [...prev.plan];
+                              plan[i] = { ...plan[i], date: value };
+                              return { ...prev, plan };
+                            });
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            setData((prev) => {
+                              const plan = [...prev.plan];
+                              const current = ensurePlanEntryDefaults(plan[i], i);
+                              const nextCompleted = !(current.completedAt || current.status);
+                              plan[i] = {
+                                ...current,
+                                status: nextCompleted,
+                                completedAt: nextCompleted ? new Date().toISOString() : null,
+                              };
+                              return { ...prev, plan };
+                            });
+                          }}
+                          className={`w-full rounded-md px-3 py-2 text-sm ${
+                            isCompleted ? "bg-emerald-600 text-white" : "bg-zinc-100"
+                          }`}
+                        >
+                          {isCompleted
+                            ? completedLabel
+                              ? `Выполнено ${completedLabel}`
+                              : "Выполнено ✅"
+                            : "Отметить"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-zinc-600 sm:grid-cols-4">
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1">
+                        <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+                          Объём
+                        </div>
+                        <div className="font-semibold text-zinc-800">
+                          {summary.volume ? summary.volume : 0} кг
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1">
+                        <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+                          Эффективность
+                        </div>
+                        <div className="font-semibold text-zinc-800">
+                          {summary.effectiveness != null ? `${summary.effectiveness} %` : "—"}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1">
+                        <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+                          Длительность
+                        </div>
+                        <div className="font-semibold text-zinc-800">
+                          {formatDuration(summary.duration)}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1">
+                        <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+                          Упражнений
+                        </div>
+                        <div className="font-semibold text-zinc-800">
+                          {summary.exercises || (Array.isArray(d.workoutSets) ? d.workoutSets.length : 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {Array.isArray(d.workoutSets) && d.workoutSets.length > 0 && (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-sm text-zinc-700">
+                          Упражнения и подходы
+                        </summary>
+                        <div className="mt-2 space-y-2 text-sm text-zinc-700">
+                          {d.workoutSets.map((ex, exIdx) => (
+                            <div key={ex?.id || exIdx} className="rounded-lg border border-zinc-200 p-2">
+                              <div className="font-medium">
+                                {ex?.name || `Упражнение ${exIdx + 1}`}
+                              </div>
+                              {ex?.muscle && (
+                                <div className="text-xs text-zinc-500">{ex.muscle}</div>
+                              )}
+                              <ul className="mt-1 space-y-1 text-xs text-zinc-600">
+                                {(ex?.sets || []).map((set, setIdx) => (
+                                  <li key={setIdx} className="flex flex-wrap items-center gap-2">
+                                    <span className="font-semibold text-zinc-700">#{setIdx + 1}</span>
+                                    {set?.reps && <span>{set.reps} повт.</span>}
+                                    {set?.weight && <span>{set.weight} кг</span>}
+                                    {set?.rir !== undefined && set?.rir !== "" && (
+                                      <span>RIR {set.rir}</span>
+                                    )}
+                                    {set?.done && (
+                                      <span className="text-emerald-600">✓</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
                   <textarea
-                    className="mt-2 w-full rounded-md border border-zinc-300 p-2 text-sm"
+                     className="w-full rounded-md border border-zinc-300 p-2 text-sm"
                     rows={2}
                     placeholder="Заметка"
-                    value={d.note}
+                    value={d.note || ""}
                     onChange={(e) => {
-                      const next = [...data.plan];
-                      next[i].note = e.target.value;
-                      setData({ ...data, plan: next });
+                      const value = e.target.value;
+                      setData((prev) => {
+                        const plan = [...prev.plan];
+                        plan[i] = { ...plan[i], note: value };
+                        return { ...prev, plan };
+                      });
                     }}
                   />
                 </div>
-                <div className="flex w-40 flex-col items-end gap-2">
-                  <input
-                    type="date"
-                    className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                    value={d.date}
-                    onChange={(e) => {
-                      const next = [...data.plan];
-                      next[i].date = e.target.value;
-                      setData({ ...data, plan: next });
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      const next = [...data.plan];
-                      next[i].status = !next[i].status;
-                      setData({ ...data, plan: next });
-                    }}
-                    className={`w-full rounded-md px-3 py-2 text-sm ${
-                      d.status ? "bg-emerald-600 text-white" : "bg-zinc-100"
-                    }`}
-                  >
-                    {d.status ? "Выполнено ✅" : "Отметить"}
-                  </button>
-                </div>
-              </div>
-            ))}
+                    );
+            })}
           </div>
         </Section>
       )}
