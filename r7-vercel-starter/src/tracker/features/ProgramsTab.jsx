@@ -299,8 +299,11 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
     });
     onCompleteDay({
       level,
+      levelName: prog?.name || level,
       weekIndex: ps.week,
+      weekName: week?.name || "",
       dayIndex: ps.day,
+      dayTitle: day?.title || "",
       planDayIndex,
       completedAt,
       summary: {
