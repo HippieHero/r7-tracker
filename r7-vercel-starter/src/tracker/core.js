@@ -140,14 +140,14 @@ export const PROGRAMS = {
 };
 
 // План 30д
-const dayTemplate = [
- { name: "Тренировка A (низ/ягодицы)" },
-  { name: "Отдых / мобилити" },
-  { name: "Тренировка B (верх/спина+грудь)" },
-  { name: "Отдых" },
-  { name: "Тренировка C (смешанная/кор)" },
-  { name: "Зона-2 / прогулка" },
-  { name: "Отдых" },
+const PLAN_TEMPLATE = [
+  { type: "workout", level: "S", dayIndex: 0 },
+  { type: "rest", title: "Отдых / мобилити" },
+  { type: "workout", level: "S", dayIndex: 1 },
+  { type: "rest", title: "Отдых" },
+  { type: "workout", level: "S", dayIndex: 2 },
+  { type: "rest", title: "Зона-2 / прогулка" },
+  { type: "rest", title: "Отдых" },
 ];
 const SUMMARY_TEMPLATE = { volume: 0, effectiveness: null, duration: 0, exercises: 0 };
 export const createEmptySummary = () => ({ ...SUMMARY_TEMPLATE });
@@ -159,6 +159,54 @@ export function ensurePlanEntryDefaults(entry = {}, index = 0) {
     if (next === original) next = { ...original };
   };
 
+if (next.programLevel === undefined) {
+    ensureClone();
+    next.programLevel = null;
+  }
+
+  if (next.programLevel != null && typeof next.programLevel !== "string") {
+    ensureClone();
+    next.programLevel = String(next.programLevel);
+  }
+
+  if (next.programLevelName == null) {
+    ensureClone();
+    next.programLevelName = "";
+  }
+
+  if (next.programWeekIndex === undefined) {
+    ensureClone();
+    next.programWeekIndex = null;
+  }
+
+  if (next.programWeekIndex != null && !Number.isFinite(next.programWeekIndex)) {
+    const parsed = Number(next.programWeekIndex);
+    ensureClone();
+    next.programWeekIndex = Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (next.programWeekName == null) {
+    ensureClone();
+    next.programWeekName = "";
+  }
+
+  if (next.programDayIndex === undefined) {
+    ensureClone();
+    next.programDayIndex = null;
+  }
+
+  if (next.programDayIndex != null && !Number.isFinite(next.programDayIndex)) {
+    const parsed = Number(next.programDayIndex);
+    ensureClone();
+    next.programDayIndex = Number.isFinite(parsed) ? parsed : null;
+  }
+
+  if (next.programDayName == null) {
+    ensureClone();
+    next.programDayName = "";
+  }
+
+  
   if (next.day == null) {
     ensureClone();
     next.day = index + 1;
@@ -188,6 +236,37 @@ export function ensurePlanEntryDefaults(entry = {}, index = 0) {
     next.note = "";
   }
 
+const levelKey = typeof next.programLevel === "string" && next.programLevel ? next.programLevel : null;
+  const program = levelKey ? PROGRAMS[levelKey] : null;
+  const weeks = Array.isArray(program?.weeks) ? program.weeks : [];
+  if (program && (!next.programLevelName || next.programLevelName === "")) {
+    ensureClone();
+    next.programLevelName = program.name || levelKey;
+  }
+
+  const weekIndex = Number.isFinite(next.programWeekIndex) ? next.programWeekIndex : null;
+  if (program && weekIndex != null && weeks[weekIndex]) {
+    const week = weeks[weekIndex];
+    if (!next.programWeekName) {
+      ensureClone();
+      next.programWeekName = week?.name || next.programWeekName || "";
+    }
+
+    const dayIndex = Number.isFinite(next.programDayIndex) ? next.programDayIndex : null;
+    const days = Array.isArray(week?.days) ? week.days : [];
+    if (dayIndex != null && days[dayIndex]) {
+      const day = days[dayIndex];
+      if (!next.programDayName) {
+        ensureClone();
+        next.programDayName = day?.title || next.programDayName || "";
+      }
+      if (!next.title) {
+        ensureClone();
+        next.title = day?.title || next.title || "";
+      }
+    }
+  }
+  
   const summarySource = next.summary;
   if (!summarySource || typeof summarySource !== "object") {
     ensureClone();
@@ -224,17 +303,73 @@ export function ensurePlanEntryDefaults(entry = {}, index = 0) {
 }
 export const makePlan = (len = DEFAULT_DAYS) =>
   Array.from({ length: len }).map((_, i) => {
-    const t = dayTemplate[i % dayTemplate.length];
-    return ensurePlanEntryDefaults({
+    const template = PLAN_TEMPLATE[i % PLAN_TEMPLATE.length] || {};
+    const cycleIndex = Math.floor(i / PLAN_TEMPLATE.length);
+    const base = {
       day: i + 1,
       date: "",
-      title: t.name,
       status: false,
       note: "",
       completedAt: null,
       summary: createEmptySummary(),
       workoutSets: [],
-    }, i);
+       };
+
+    if (template.type === "workout") {
+      const levelKey = template.level || "S";
+      const program = PROGRAMS[levelKey] || {};
+      const weeks = Array.isArray(program.weeks) ? program.weeks : [];
+      const levelName = program?.name || levelKey;
+      let weekIndex = null;
+      let weekName = "";
+      const hasWeekIndexOverride = Number.isFinite(template.weekIndex);
+      const rawWeekIndex = hasWeekIndexOverride
+        ? template.weekIndex
+        : cycleIndex;
+      if (weeks.length > 0) {
+        const normalized = ((rawWeekIndex % weeks.length) + weeks.length) % weeks.length;
+        weekIndex = normalized;
+        weekName = weeks[normalized]?.name || "";
+      }
+
+      const dayIndex = Number.isFinite(template.dayIndex) ? template.dayIndex : null;
+      let dayName = template.title || "";
+      if (weekIndex != null) {
+        const week = weeks[weekIndex] || {};
+        const days = Array.isArray(week?.days) ? week.days : [];
+        if (dayIndex != null && days[dayIndex]) {
+          dayName = days[dayIndex]?.title || dayName;
+        }
+      }
+
+      return ensurePlanEntryDefaults(
+        {
+          ...base,
+          title: dayName,
+          programLevel: levelKey,
+          programLevelName: levelName,
+          programWeekIndex: weekIndex,
+          programWeekName: weekName,
+          programDayIndex: dayIndex,
+          programDayName: dayName || "",
+        },
+        i,
+      );
+    }
+
+    return ensurePlanEntryDefaults(
+      {
+        ...base,
+        title: template.title || "",
+        programLevel: null,
+        programLevelName: "",
+        programWeekIndex: null,
+        programWeekName: "",
+        programDayIndex: null,
+        programDayName: "",
+      },
+      i,
+    );
   });
 
 export function makeInitialData() {
