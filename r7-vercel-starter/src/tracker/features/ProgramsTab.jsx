@@ -36,22 +36,6 @@ function MetaBar({ ex, exIdx, addSet, removeLastSet }){
             </TinyPill>
           )}
         </div>
-        <div className="flex shrink-0 items-center justify-center gap-1.5 px-2 py-1.5">
-          <button
-            onClick={()=>addSet(exIdx)}
-            className="h-8 w-8 rounded-full border border-zinc-300 text-base leading-none"
-            title="+ подход"
-          >
-            +
-          </button>
-          <button
-            onClick={()=>removeLastSet(exIdx)}
-            className="h-8 w-8 rounded-full border border-zinc-300 text-base leading-none"
-            title="– убрать"
-          >
-            –
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -64,10 +48,10 @@ const InputMini = React.forwardRef(function InputMini({ className="", onEnter, .
       inputMode="decimal"
       pattern="[0-9.,]*"
       className={[
-        "h-9 w-full rounded-md border border-zinc-300 px-2 text-center text-base",
+       "h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-sm",
         className,
       ].join(" ")}
-      style={{ fontSize: "16px" }}
+      style={{ fontSize: "14px" }}
       onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
       {...props}
     />
@@ -429,16 +413,16 @@ export default function ProgramsTab() {
                         <td className="px-2 py-1">{si+1}</td>
                         <td className="px-2 py-1">
                            <input
-                            className="h-9 w-28 rounded border border-zinc-300 px-2 text-base"
-                            style={{ fontSize: "16px" }}
+                            className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
+                            style={{ fontSize: "14px" }}
                             value={row.reps || ""} onChange={(e)=>setCell(exIdx, si, "reps", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
                             placeholder={ex.reps} inputMode="numeric" />
                         </td>
                         <td className="px-2 py-1">
                            <input id={`kg-${idBase}`}
-                            className="h-9 w-28 rounded border border-zinc-300 px-2 text-base"
-                            style={{ fontSize: "16px" }}
+                            className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
+                            style={{ fontSize: "14px" }}
                             value={row.weight || ""} onChange={(e)=>setCell(exIdx, si, "weight", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
                             placeholder="кг" inputMode="decimal" />
@@ -468,7 +452,21 @@ export default function ProgramsTab() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <button
+                  className="rounded-md border border-zinc-300 px-2 py-1"
+                  onClick={()=>addSet(exIdx)}
+                >
+                  + подход
+                </button>
+                <button
+                  className="rounded-md border border-zinc-300 px-2 py-1"
+                  onClick={()=>removeLastSet(exIdx)}
+                >
+                  – подход
+                </button>
+              </div>
               <button className="rounded-md border border-zinc-300 px-2 py-1" onClick={()=>copyLast(exIdx)}>Как в прошлый раз</button>
               <button className="rounded-md border border-zinc-300 px-2 py-1" onClick={()=>{
                 saveDayHistory(level, ps.week, ps.day, day, ps.progress);
