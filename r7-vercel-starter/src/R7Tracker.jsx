@@ -14,6 +14,7 @@ import {
   ensurePlanEntryDefaults,
   createEmptySummary,
   PROGRAM_MODE,
+  getProgramsForMode,
 } from "./tracker/core";
 
 // Базовые UI-примитивы страницы
@@ -732,12 +733,24 @@ const formatDuration = (ms) => {
 function Onboarding({ initial, onClose }) {
   const [name, setName] = useState(initial?.name || "");
   const activeMode = initial?.mode === PROGRAM_MODE ? initial.mode : PROGRAM_MODE;
-  const [level, setLevel] = useState(initial?.level || "S");
+  const [level, setLevelState] = useState(initial?.level || "S");
   const [start, setStart] = useState(
     initial?.start || new Date().toISOString().slice(0, 10)
   );
   const [days, setDays] = useState(initial?.days || 30);
+const programsForMode = useMemo(() => getProgramsForMode(activeMode), [activeMode]);
+  const levelEntries = useMemo(() => Object.entries(programsForMode), [programsForMode]);
 
+  useEffect(() => {
+    if (levelEntries.length === 0) return;
+    const available = levelEntries
+      .filter(([, value]) => Array.isArray(value?.weeks) && value.weeks.length > 0)
+      .map(([key]) => key);
+    if (available.length > 0 && !available.includes(level)) {
+      setLevelState(available[0]);
+    }
+  }, [levelEntries, level]);
+  
   function save() {
     onClose({ name, mode: activeMode, level, start, days: Number(days) || 30 });
   }
@@ -778,15 +791,16 @@ function Onboarding({ initial, onClose }) {
             <select
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               value={level}
-              onChange={(e) => setLevel(e.target.value)}
+              onChange={(e) => setLevelState(e.target.value)}
             >
-              <option value="S">Start</option>
-              <option value="M" disabled>
-                Medium (скоро)
-              </option>
-              <option value="P" disabled>
-                Pro (скоро)
-              </option>
+              {levelEntries.map(([key, value]) => {
+                const disabled = !(Array.isArray(value?.weeks) && value.weeks.length > 0);
+                return (
+                  <option key={key} value={key} disabled={disabled}>
+                    {(value?.name || key) + (disabled ? " (скоро)" : "")}
+                  </option>
+                );
+              })}
             </select>
           </label>
 
