@@ -51,7 +51,7 @@ const InputMini = React.forwardRef(function InputMini({ className="", onEnter, .
        "h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-sm",
         className,
       ].join(" ")}
-      style={{ fontSize: "16px" }}
+      style={{ fontSize: "14px" }}
       onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
       {...props}
     />
@@ -490,7 +490,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                         <td className="px-2 py-1">
                            <input
                             className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
-                            style={{ fontSize: "16px" }}
+                            style={{ fontSize: "14px" }}
                             value={row.reps || ""} onChange={(e)=>setCell(exIdx, si, "reps", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
                             placeholder={ex.reps} inputMode="numeric" />
@@ -498,7 +498,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                         <td className="px-2 py-1">
                            <input id={`kg-${idBase}`}
                             className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
-                            style={{ fontSize: "16px" }}
+                            style={{ fontSize: "14px" }}
                             value={row.weight || ""} onChange={(e)=>setCell(exIdx, si, "weight", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
                             placeholder="кг" inputMode="decimal" />
