@@ -2,8 +2,14 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Section, TinyPill } from "../ui/Primitives";
 import { StickyInfoBar } from "../ui/Primitives";
 import {
-  N, useProgramsState, keyFor, exId, saveDayHistory, PROGRAMS,
-  vibrate
+ N,
+  useProgramsState,
+  keyFor,
+  exId,
+  saveDayHistory,
+  vibrate,
+  getProgramsForMode,
+  PROGRAM_MODE,
 } from "../core";
 
 /* ===== Мелкие элементы мета-инфо по упражнению ===== */
@@ -152,10 +158,25 @@ function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
 }
 
 /* ===== Основная вкладка Программ ===== */
-export default function ProgramsTab({ onCompleteDay }) {
+export default function ProgramsTab({ onCompleteDay, mode }) {
   const [ps, setPs] = useProgramsState();
-  const level = ps.level;
-  const prog = PROGRAMS[level] || { weeks: [] };
+  const programs = useMemo(
+    () => getProgramsForMode(mode ?? PROGRAM_MODE),
+    [mode],
+  );
+  const availableLevels = useMemo(() => Object.keys(programs), [programs]);
+
+  useEffect(() => {
+    if (availableLevels.length === 0) return;
+    if (!availableLevels.includes(ps.level)) {
+      setPs((prev) => ({ ...prev, level: availableLevels[0], week: 0, day: 0 }));
+    }
+  }, [availableLevels, ps.level, setPs]);
+
+  const level = availableLevels.includes(ps.level)
+    ? ps.level
+    : availableLevels[0] ?? "S";
+  const prog = programs[level] || { weeks: [] };
   const week = prog.weeks[ps.week] || { days: [] };
   const day  = week.days[ps.day];
 
