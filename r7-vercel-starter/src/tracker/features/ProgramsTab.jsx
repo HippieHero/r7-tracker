@@ -138,14 +138,17 @@ function StatsRow({ volume, effectiveness, timeText, started, paused, onStart, o
 }
 
 /* ===== Селекторы недели/дня ===== */
-function Controls({ level, setLevel, prog, weekIdx, setWeek, dayIdx, setDay }) {
+function Controls({ level, setLevel, programs, prog, weekIdx, setWeek, dayIdx, setDay }) {
+  const levelOptions = useMemo(() => Object.entries(programs || {}), [programs]);
   const week = prog.weeks[weekIdx] || { days: [] };
   return (
     <div className="flex flex-wrap items-center gap-2">
       <select value={level} onChange={(e)=>setLevel(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-        <option value="S">Start</option>
-        <option value="M" disabled>Medium (скоро)</option>
-        <option value="P" disabled>Pro (скоро)</option>
+        {levelOptions.map(([key, value]) => (
+          <option key={key} value={key} disabled={!value?.weeks?.length}>
+            {value?.name || key}
+          </option>
+        ))}
       </select>
       <select value={weekIdx} onChange={(e)=>setWeek(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
         {prog.weeks.map((w,i)=>(<option key={i} value={i}>{w.name}</option>))}
@@ -164,7 +167,14 @@ export default function ProgramsTab({ onCompleteDay, mode }) {
     () => getProgramsForMode(mode ?? PROGRAM_MODE),
     [mode],
   );
-  const availableLevels = useMemo(() => Object.keys(programs), [programs]);
+  const levelEntries = useMemo(() => Object.entries(programs), [programs]);
+  const availableLevels = useMemo(() => {
+    const filled = levelEntries
+      .filter(([, value]) => Array.isArray(value?.weeks) && value.weeks.length > 0)
+      .map(([key]) => key);
+    if (filled.length > 0) return filled;
+    return levelEntries.map(([key]) => key);
+  }, [levelEntries]);
 
   useEffect(() => {
     if (availableLevels.length === 0) return;
@@ -352,7 +362,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
   if(!day){
     return (
       <Section title="Программы тренировок">
-        <div className="mb-3"><Controls level={level} setLevel={setLevel} prog={prog} weekIdx={ps.week} setWeek={setWeek} dayIdx={ps.day} setDay={setDay} /></div>
+        <div className="mb-3"><Controls level={level} setLevel={setLevel} programs={programs} prog={prog} weekIdx={ps.week} setWeek={setWeek} dayIdx={ps.day} setDay={setDay} /></div>
         <StickyInfoBar doneSets={0} totalSets={0} leftContent={null} rightTimer={{ mm:"00", ss:"00", start:()=>{}, stop:()=>{}, active:false }} />
         <div className="mt-3 text-sm text-zinc-600">Выберите Start → Неделя 1.</div>
       </Section>
@@ -362,7 +372,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
   return (
     <>
       <Section title="Программы тренировок">
-        <div className="mb-3"><Controls level={level} setLevel={setLevel} prog={prog} weekIdx={ps.week} setWeek={setWeek} dayIdx={ps.day} setDay={setDay} /></div>
+        <div className="mb-3"><Controls level={level} setLevel={setLevel} programs={programs} prog={prog} weekIdx={ps.week} setWeek={setWeek} dayIdx={ps.day} setDay={setDay} /></div>
         <StatsRow
           volume={dayStats.volume}
           effectiveness={dayStats.effectiveness}
