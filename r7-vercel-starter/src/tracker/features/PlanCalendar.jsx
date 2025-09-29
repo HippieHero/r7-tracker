@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 const formatDate = (ms) => {
-  if (!Number.isFinite(ms)) return null;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
   try {
     const date = new Date(ms);
     if (Number.isNaN(date.getTime())) return null;
@@ -139,6 +139,8 @@ export default function PlanCalendar({ plan, profile, calendarMeta, onClose }) {
               const status = dayStatuses.get(day) || {};
               const completed = Boolean(status.completed);
               const dateLabel = formatDate(status.dateMs);
+            const showDate = completed && dateLabel;
+              const displayDate = showDate ? dateLabel : "—";
               const titleParts = [];
               if (status.title) titleParts.push(status.title);
               if (dateLabel) titleParts.push(dateLabel);
@@ -160,7 +162,13 @@ export default function PlanCalendar({ plan, profile, calendarMeta, onClose }) {
                       completed ? "bg-emerald-500" : "bg-zinc-300"
                     }`}
                   />
-                  {dateLabel && <div className="text-[10px] text-zinc-500">{dateLabel}</div>}
+                  <div
+                    className={`text-[10px] ${
+                      showDate ? "text-zinc-500" : "text-zinc-400"
+                    }`}
+                  >
+                    {displayDate}
+                  </div>
                 </div>
               );
             })}
