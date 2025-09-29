@@ -80,7 +80,7 @@ const RirSelect = React.forwardRef(function RirSelect({ value, onChange, onEnter
       <select
         ref={ref}
         className="h-full w-full rounded-md bg-transparent pl-2 pr-6 text-xs"
-        style={{ fontSize: "16px" }}
+        style={{ fontSize: "14px" }}
         value={value ?? ""}
         onChange={(e)=>onChange(e.target.value)}
         onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
