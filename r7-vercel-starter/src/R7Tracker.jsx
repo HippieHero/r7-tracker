@@ -11,8 +11,9 @@ import {
   isTelegramWebView,
   N,
   buildPersonalLink,
-    ensurePlanEntryDefaults,
+  ensurePlanEntryDefaults,
   createEmptySummary,
+  PROGRAM_MODE,
 } from "./tracker/core";
 
 // Базовые UI-примитивы страницы
@@ -480,7 +481,12 @@ const formatDuration = (ms) => {
       </header>
 
       {/* Вкладка «Программы» */}
-       {tab === "programs" && <ProgramsTab onCompleteDay={handleCompleteDay} />}
+       {tab === "programs" && (
+        <ProgramsTab
+          mode={data?.profile?.mode || PROGRAM_MODE}
+          onCompleteDay={handleCompleteDay}
+        />
+      )}
 
       {/* Вкладка «План» */}
       {tab === "plan" && (
@@ -725,7 +731,7 @@ const formatDuration = (ms) => {
 /** Укороченный онбординг (как в твоём файле) */
 function Onboarding({ initial, onClose }) {
   const [name, setName] = useState(initial?.name || "");
-  const [mode, setMode] = useState(initial?.mode || "home");
+  const activeMode = initial?.mode === PROGRAM_MODE ? initial.mode : PROGRAM_MODE;
   const [level, setLevel] = useState(initial?.level || "S");
   const [start, setStart] = useState(
     initial?.start || new Date().toISOString().slice(0, 10)
@@ -733,7 +739,7 @@ function Onboarding({ initial, onClose }) {
   const [days, setDays] = useState(initial?.days || 30);
 
   function save() {
-    onClose({ name, mode, level, start, days: Number(days) || 30 });
+    onClose({ name, mode: activeMode, level, start, days: Number(days) || 30 });
   }
 
   return (
@@ -760,17 +766,12 @@ function Onboarding({ initial, onClose }) {
             />
           </label>
 
-          <label className="text-sm font-medium">
+          <div className="text-sm font-medium">
             Режим
-            <select
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-            >
-              <option value="home">Дом</option>
-              <option value="gym">Зал</option>
-            </select>
-          </label>
+            <div className="mt-1 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+              {activeMode === "gym" ? "Зал" : "Дом"}
+            </div>
+          </div>
 
           <label className="text-sm font-medium">
             Уровень
