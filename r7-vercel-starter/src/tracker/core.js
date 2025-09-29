@@ -23,6 +23,16 @@ export const iso = (d) => {
 
 // localStorage state
 import React, { useEffect } from "react";
+import HOME_PROGRAMS from "./programs/home";
+import GYM_PROGRAMS from "./programs/gym";
+
+export const PROGRAM_MODE = import.meta.env.VITE_PROGRAM_MODE ?? "home";
+
+export function getProgramsForMode(mode) {
+  return mode === "gym" ? GYM_PROGRAMS : HOME_PROGRAMS;
+}
+
+export const PROGRAMS = getProgramsForMode(PROGRAM_MODE);
 export function usePersistedState(key, initial) {
   const [state, setState] = React.useState(() => {
     try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : initial; } catch { return initial; }
@@ -73,71 +83,6 @@ export function usePwaInstall() {
 
 export const isTelegramWebView = () =>
   typeof navigator !== "undefined" && /Telegram/i.test(navigator.userAgent || "");
-
-// ===================== Программы / Данные =====================
-export const VK_CRUNCH = "https://vkvideo.ru/video-226154718_456239154";
-
-const WEEK1_DAYS = [
-  {
-    title: "День 1 — Ноги",
-    place: "Дом",
-    exercises: [
-      { muscle: "Ягодицы", name: "Плие", warmup: true,  workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента", "Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)",
-        notes: "Спина прямая, ноги шире плеч, носки слегка наружу. Плавно, без рывков.", videos: [] },
-      { muscle: "Квадрицепсы", name: "Разгибания", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента"], intensity: "Вблизи отказа (1–2 повт.)",
-        notes: "Лёжа на спине, резинка на стопах. Фиксация вверху 1–2 сек, медленный негатив.", videos: [] },
-      { muscle: "Бицепс бедра", name: "Сгибания лёжа", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента"], intensity: "Вблизи отказа (1–2 повт.)",
-        notes: "Лёжа на животе, сгибаем ноги к ягодицам, удерживаем 1–2 сек.", videos: [] },
-      { muscle: "Ягодицы", name: "Разведения ног сидя", warmup: false, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента", "Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)",
-        notes: "Резинка выше колен, спина прямая, пик-сокращение 1–2 сек.", videos: [] },
-      { muscle: "Пресс", name: "Скручивания", warmup: false, workSets: 2, reps: "15–30", rest: "60–120 сек",
-        equipment: ["Масса тела"], intensity: "До жжения",
-        notes: "Без рывков, внизу — растяжение, работаем до жжения.",
-        videos: [{ label: "Скручивания — техника", href: VK_CRUNCH }] },
-    ]
-  },
-  { title: "День 2 — Верх", place: "Дом",
-    exercises: [
-      { muscle: "Спина", name: "Вертикальная тяга на одну руку", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Фиксация ленты выше головы…", videos: [] },
-      { muscle: "Грудь", name: "Жим лёжа", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Гантели (по желанию)"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Локти ~45°…", videos: [] },
-      { muscle: "Спина", name: "Горизонтальная тяга", warmup: false, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Длинная петля","Плоская лента"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Тянем к корпусу…", videos: [] },
-      { muscle: "Грудь", name: "Сведение лёжа на грудь", warmup: false, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Гантели"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Слегка согнутые локти…", videos: [] },
-      { muscle: "Пресс", name: "Скручивания", warmup: false, workSets: 3, reps: "15–30", rest: "60–120 сек",
-        equipment: ["Масса тела"], intensity: "До жжения", notes: "Без рывков…",
-        videos: [{ label: "Скручивания — техника", href: VK_CRUNCH }] },
-    ]
-  },
-  { title: "День 3 — Ноги/Ягодицы", place: "Дом",
-    exercises: [
-      { muscle: "Ягодицы", name: "Ягодичный мостик", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Гантель на таз","Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)",
-        notes: "Колени ~90°, фиксация 1–2 сек…", videos: [] },
-      { muscle: "Бицепс бедра", name: "Сгибания ног стоя", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Опора рукой…", videos: [] },
-      { muscle: "Ягодицы", name: "Отведение ноги в сторону (на четвереньках)", warmup: true, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Лента выше колен…", videos: [] },
-      { muscle: "Ягодицы", name: "Жим ногой на четвереньках", warmup: false, workSets: 3, reps: "12–15", rest: "60–120 сек",
-        equipment: ["Плоская лента","Мини-бэнд"], intensity: "Вблизи отказа (1–2 повт.)", notes: "Выпрямляем назад/вверх…", videos: [] },
-      { muscle: "Пресс", name: "Скручивания", warmup: false, workSets: 1, reps: "15–30", rest: "60–120 сек",
-        equipment: ["Масса тела"], intensity: "До жжения", notes: "До жжения…",
-        videos: [{ label: "Скручивания — техника", href: VK_CRUNCH }] },
-    ]
-  }
-];
-
-export const PROGRAMS = {
-  S: { name: "Start",  weeks: [{ name: "Неделя 1", days: WEEK1_DAYS }, { name: "Неделя 2", days: WEEK1_DAYS }, { name: "Неделя 3", days: WEEK1_DAYS }, { name: "Неделя 4", days: WEEK1_DAYS }]},
-  M: { name: "Medium", weeks: [] },
-  P: { name: "Pro",    weeks: [] },
-};
 
 // План 30д
 const PLAN_TEMPLATE = [
@@ -383,7 +328,7 @@ export function applyParamsToData(data) {
   const next = { ...data, profile: { ...data.profile } };
   const days = Math.max(1, Math.min(60, parseInt(q.days || DEFAULT_DAYS))) || DEFAULT_DAYS;
   if (q.name) next.profile.name = decodeURIComponent(q.name);
-  if (q.mode && (q.mode === "home" || q.mode === "gym")) next.profile.mode = q.mode;
+  if (q.mode === PROGRAM_MODE) next.profile.mode = q.mode;
   if (q.level && ["S","M","P"].includes(q.level)) next.profile.level = q.level;
   next.profile.days = days;
   if (!Array.isArray(next.plan)) next.plan = makePlan(days);
@@ -391,6 +336,7 @@ export function applyParamsToData(data) {
   next.plan = next.plan.map((item, idx) => ensurePlanEntryDefaults(item, idx));
   next._appliedFromQuery = true;
   if (q.start) next.profile.start = q.start;
+  if (!next.profile.mode) next.profile.mode = PROGRAM_MODE;
   return next;
 }
 
