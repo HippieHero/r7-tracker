@@ -51,7 +51,7 @@ const InputMini = React.forwardRef(function InputMini({ className="", onEnter, .
        "h-8 w-full rounded-md border border-zinc-300 px-2 text-center text-sm",
         className,
       ].join(" ")}
-      style={{ fontSize: "14px" }}
+      style={{ fontSize: "16px" }}
       onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
       {...props}
     />
@@ -74,6 +74,7 @@ const RirSelect = React.forwardRef(function RirSelect({ value, onChange, onEnter
       <select
         ref={ref}
         className="h-full w-full rounded-md bg-transparent pl-2 pr-6 text-xs"
+        style={{ fontSize: "16px" }}
         value={value ?? ""}
         onChange={(e)=>onChange(e.target.value)}
         onKeyDown={(e)=>{ if(e.key==="Enter") onEnter?.(); }}
@@ -209,13 +210,24 @@ export default function ProgramsTab({ onCompleteDay }) {
   const resetWorkout  = ()=>{ setWStart(0); setWAccum(0); };
   const paused = !wStart && wAccum>0; const started = !!(wStart || wAccum);
 
+const isSetComplete = (set = {}) => {
+    const hasValue = (val) => {
+      if (val == null) return false;
+      if (typeof val === "string") return val.trim() !== "";
+      return String(val).trim() !== "";
+    };
+    return hasValue(set.reps) && hasValue(set.weight) && hasValue(set.rir);
+  };
+  
   // Ячейки подходов
   function setCell(exIdx, setIdx, field, value){
     const k = keyFor(level, ps.week, ps.day, exIdx);
     setPs(prev=>{
       const cur = prev.progress[k] || { sets: [] };
       const sets = [...(cur.sets || [])];
-      sets[setIdx] = { ...(sets[setIdx] || {}), [field]: value };
+      const nextRow = { ...(sets[setIdx] || {}), [field]: value };
+      nextRow.done = isSetComplete(nextRow);
+      sets[setIdx] = nextRow;
       return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
     });
   }
@@ -343,13 +355,15 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
         />
          {onCompleteDay && (
           <button
-            className={`mt-3 w-full rounded-md px-3 py-2 text-sm ${
-              canCompleteDay ? "bg-emerald-600 text-white" : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+             className={`mt-3 w-full rounded-md px-3 py-2 text-sm font-medium transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 ${
+              canCompleteDay
+                ? "bg-emerald-600 text-white shadow-sm active:scale-95 active:bg-emerald-700"
+                : "cursor-not-allowed bg-zinc-200 text-zinc-500"
             }`}
             onClick={triggerCompleteDay}
             disabled={!canCompleteDay}
           >
-            Сохранить в план
+            Завершить тренировку
           </button>
         )}
       </Section>
@@ -427,9 +441,20 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                         setPs(prev=>{
                           const cur = prev.progress[k] || { sets: [] };
                           const sets = [...(cur.sets || [])];
-                          sets[si] = { ...(sets[si] || {}), rir: val };
+                          const current = { ...(sets[si] || {}), rir: val };
+                          current.done = isSetComplete(current);
+                          sets[si] = current;
                           if (si===0 && val){
-                            for(let j=1;j<(ex.workSets||0);j++){ const r = sets[j] || {}; if(!r.rir) sets[j] = { ...r, rir: val }; }
+                            for(let j=1;j<(ex.workSets||0);j++){
+                              const existing = sets[j] || {};
+                              if(!existing.rir){
+                                const copied = { ...existing, rir: val };
+                                copied.done = isSetComplete(copied);
+                                sets[j] = copied;
+                              } else {
+                                sets[j] = { ...existing, done: isSetComplete(existing) };
+                              }
+                            }
                           }
                           return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
                         });
@@ -465,7 +490,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                         <td className="px-2 py-1">
                            <input
                             className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
-                            style={{ fontSize: "14px" }}
+                            style={{ fontSize: "16px" }}
                             value={row.reps || ""} onChange={(e)=>setCell(exIdx, si, "reps", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`kg-${idBase}`)?.focus(); }}}
                             placeholder={ex.reps} inputMode="numeric" />
@@ -473,7 +498,7 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                         <td className="px-2 py-1">
                            <input id={`kg-${idBase}`}
                             className="h-8 w-28 rounded border border-zinc-300 px-2 text-sm"
-                            style={{ fontSize: "14px" }}
+                            style={{ fontSize: "16px" }}
                             value={row.weight || ""} onChange={(e)=>setCell(exIdx, si, "weight", e.target.value)}
                             onKeyDown={(e)=>{ if(e.key==="Enter"){ document.getElementById(`rir-${idBase}`)?.focus(); }}}
                             placeholder="кг" inputMode="decimal" />
@@ -485,9 +510,20 @@ const canCompleteDay = day && totalSets > 0 ? doneSets >= totalSets : false;
                               setPs(prev=>{
                                 const cur = prev.progress[k] || { sets: [] };
                                 const sets = [...(cur.sets || [])];
-                                sets[si] = { ...(sets[si] || {}), rir: val };
+                                const current = { ...(sets[si] || {}), rir: val };
+                                current.done = isSetComplete(current);
+                                sets[si] = current;
                                 if (si===0 && val){
-                                  for(let j=1;j<(ex.workSets||0);j++){ const r = sets[j] || {}; if(!r.rir) sets[j] = { ...r, rir: val }; }
+                                  for(let j=1;j<(ex.workSets||0);j++){
+                                    const existing = sets[j] || {};
+                                    if(!existing.rir){
+                                      const copied = { ...existing, rir: val };
+                                      copied.done = isSetComplete(copied);
+                                      sets[j] = copied;
+                                    } else {
+                                      sets[j] = { ...existing, done: isSetComplete(existing) };
+                                    }
+                                  }
                                 }
                                 return { ...prev, progress: { ...prev.progress, [k]: { ...cur, sets } } };
                               });
