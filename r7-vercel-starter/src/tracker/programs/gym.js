@@ -450,6 +450,7 @@ const GYM_PROGRAMS = {
       { name: "Неделя 1", days: GYM_START_WEEK1_DAYS },
       { name: "Неделя 2", days: GYM_START_WEEK2_DAYS },
     ],
+  },
   M: { name: "Medium", weeks: [] },
   P: { name: "Pro", weeks: [] },
 };
